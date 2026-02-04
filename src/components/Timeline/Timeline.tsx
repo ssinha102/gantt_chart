@@ -80,7 +80,6 @@ export const Timeline: React.FC = () => {
       }
 
       const svgRect = svgRef.current.getBoundingClientRect();
-      // Adjust for the new topOffset when calculating row drop
       const relativeY = e.clientY - svgRect.top - HEADER_HEIGHT - topOffset;
       const rowIdx = Math.floor(relativeY / ROW_HEIGHT);
       
@@ -103,7 +102,7 @@ export const Timeline: React.FC = () => {
     <div style={{ overflow: 'auto', flex: 1, position: 'relative' }}>
       <svg ref={svgRef} width={width} height={height} style={{ display: 'block' }}>
         
-        {/* 0. Timebox Bands (Rendered at top if visible) */}
+        {/* 0. Timebox Bands */}
         {showTimeboxes && doc.timeboxes && doc.timeboxes.map(tb => {
            const startOffset = diffDays(tb.start, startDate);
            const duration = diffDays(tb.end, tb.start) + 1;
@@ -117,7 +116,7 @@ export const Timeline: React.FC = () => {
              <g key={tb.id}>
                <rect 
                  x={x} y={0} width={w} height={TIMEBOX_HEIGHT} 
-                 fill={isPi ? "#f3e5f5" : "#e3f2fd"} // Purple for PI, Blue for Sprint
+                 fill={isPi ? "#f3e5f5" : "#e3f2fd"} 
                  stroke={isPi ? "#9c27b0" : "#2196f3"}
                  strokeWidth={1}
                />
@@ -128,7 +127,7 @@ export const Timeline: React.FC = () => {
            )
         })}
 
-        {/* 1. Background Grid & Headers (Shifted down by topOffset) */}
+        {/* 1. Grid & Headers */}
         <g transform={`translate(0, ${topOffset})`}>
             {Array.from({ length: renderDays }).map((_, i) => {
               const x = i * CELL_WIDTH;
@@ -163,6 +162,12 @@ export const Timeline: React.FC = () => {
               const isDragging = dragState?.id === task.id;
               const cursor = isDragging ? 'grabbing' : 'grab';
 
+              // Visual styles based on status
+              let barColor = isDragging ? "#0052cc" : "#3b82f6";
+              if (task.status === 'done') barColor = "#36b37e"; // Green
+              if (task.status === 'blocked') barColor = "#ff5630"; // Red
+              if (task.status === 'in-progress') barColor = "#ffab00"; // Orange
+
               return (
                 <g 
                   key={task.id} 
@@ -172,8 +177,10 @@ export const Timeline: React.FC = () => {
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
                 >
-                  <rect width={w} height={32} rx={4} fill={isDragging ? "#0052cc" : "#3b82f6"} opacity={isDragging ? 0.9 : 1} />
-                  <text x={4} y={20} fontSize="12" fill="white" pointerEvents="none" style={{ userSelect: 'none' }}>{task.name}</text>
+                  <rect width={w} height={32} rx={4} fill={barColor} opacity={isDragging ? 0.9 : 1} />
+                  <text x={4} y={20} fontSize="12" fill="white" pointerEvents="none" style={{ userSelect: 'none' }}>
+                    {task.name} {task.owner ? `(${task.owner})` : ''}
+                  </text>
                   <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={32} fill="transparent" style={{ cursor: 'ew-resize' }} />
                   <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={32} fill="transparent" style={{ cursor: 'ew-resize' }} />
                 </g>
