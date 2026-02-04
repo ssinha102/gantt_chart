@@ -12,7 +12,7 @@ export type Task = {
   end: string;   // Acts as Due Date
   owner?: string;
   status?: "todo" | "in-progress" | "done" | "blocked";
-  link?: string; // New Field
+  link?: string;
   progress?: number;
 };
 
@@ -33,5 +33,6 @@ export type GanttDocV1 = {
   view: {
     zoom: string;
     showTimeboxes: boolean;
+    collapsedRowIds: string[]; // New field for row state
   };
 };
