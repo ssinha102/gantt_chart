@@ -3,17 +3,17 @@ import { useStore } from '../../state/store';
 import { addDays, diffDays, getTodayStr } from '../../utils/dateUtils';
 
 const CELL_WIDTH = 40; 
-const HEADER_HEIGHT = 40; 
+const HEADER_HEIGHT = 10; // Reduced significantly since dates are gone
 const TIMEBOX_HEIGHT = 30; 
 const RESIZE_HANDLE_WIDTH = 10;
 
-// Layout Constants (Must roughly match DebugList.tsx styling)
+// Layout Constants
 const GRID_ROW_HEADER_H = 60; 
-const GRID_TASK_H = 160;      // Fixed track height to maintain alignment with Left Grid
+const GRID_TASK_H = 160;      
 const GRID_ROW_FOOTER_H = 60; 
 
 // Visual Styling
-const BUBBLE_RADIUS = 8;
+const BUBBLE_RADIUS = 8; // Matches the rounded look in your image
 
 export const Timeline: React.FC = () => {
   const { doc, updateTask, reorderTask } = useStore();
@@ -121,7 +121,7 @@ export const Timeline: React.FC = () => {
   return (
     <div id="timeline-container" style={{ overflow: 'auto', flex: 1, position: 'relative' }}>
       <svg ref={svgRef} width={width} height={height} style={{ display: 'block' }}>
-        {/* Timeboxes */}
+        {/* Timeboxes (Sprints/PIs) */}
         {showTimeboxes && doc.timeboxes && doc.timeboxes.map(tb => {
            const startOffset = diffDays(tb.start, startDate);
            const duration = diffDays(tb.end, tb.start) + 1;
@@ -138,20 +138,11 @@ export const Timeline: React.FC = () => {
         })}
 
         <g transform={`translate(0, ${topOffset})`}>
-            {/* Grid Lines */}
-            {Array.from({ length: renderDays }).map((_, i) => {
-              const x = i * CELL_WIDTH;
-              const date = addDays(startDate, i);
-              const isWeekStart = new Date(date).getDay() === 1;
-              return (
-                <g key={i}>
-                  <line x1={x} y1={0} x2={x} y2={height - topOffset} stroke={isWeekStart ? "#ccc" : "#f0f0f0"} strokeWidth={isWeekStart ? 2 : 1} />
-                  <text x={x + 5} y={25} fontSize="10" fill="#666">{date.slice(5)}</text>
-                </g>
-              );
-            })}
+            {/* REMOVED: Grid Lines & Date Headers Loop 
+               This gives the "clean, free-flowing" look requested.
+            */}
             
-            {/* Rows Backgrounds */}
+            {/* Rows Backgrounds (Transparent stroke for cleaner look) */}
             {rowLayouts.map((layout, i) => (
               <rect 
                 key={layout.rowId} 
@@ -160,7 +151,7 @@ export const Timeline: React.FC = () => {
                 width={width} 
                 height={layout.height} 
                 fill={i % 2 === 0 ? "transparent" : "rgba(0,0,0,0.02)"} 
-                stroke="#f0f0f0"
+                // Removed stroke to eliminate grid-like borders
               />
             ))}
 
