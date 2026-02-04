@@ -3,10 +3,14 @@ import { useStore } from '../../state/store';
 import { addDays, diffDays, getTodayStr } from '../../utils/dateUtils';
 
 const CELL_WIDTH = 40; 
-const ROW_HEIGHT = 56;
 const HEADER_HEIGHT = 40; 
 const TIMEBOX_HEIGHT = 30; 
 const RESIZE_HANDLE_WIDTH = 10;
+
+// Grid layout constants (Must roughly match DebugList.tsx styling)
+const GRID_ROW_HEADER_H = 60; // Title + padding
+const GRID_TASK_H = 140;      // Height of one task card in the grid
+const GRID_ROW_FOOTER_H = 50; // Add Task button area
 
 export const Timeline: React.FC = () => {
   const { doc, updateTask } = useStore();
@@ -19,21 +23,45 @@ export const Timeline: React.FC = () => {
 
   const startDate = getTodayStr(); 
 
+  // 1. Pre-calculate layout (Y positions) for every row and task
+  // This ensures the timeline matches the expanding grid on the left
+  let currentY = 0;
+  const rowLayouts = doc.rows.map(row => {
+    const rowY = currentY;
+    const rowTasks = doc.tasks.filter(t => t.rowId === row.id);
+    
+    // Header space
+    currentY += GRID_ROW_HEADER_H;
+    
+    // Task tracks
+    const taskLayouts = rowTasks.map(task => {
+      const taskY = currentY;
+      currentY += GRID_TASK_H;
+      return { taskId: task.id, y: taskY };
+    });
+    
+    // Footer space
+    currentY += GRID_ROW_FOOTER_H;
+    
+    const height = currentY - rowY;
+    
+    // Add margin between rows
+    currentY += 24; // Corresponds to marginBottom in Grid
+
+    return { rowId: row.id, y: rowY, height, tasks: taskLayouts };
+  });
+
   // Dynamic Width Calculation
-  let maxDays = 90; // Minimum default
+  let maxDays = 90; 
   if (doc.tasks.length > 0) {
-    // Find the latest task end date
-    const latestDate = doc.tasks.reduce((latest, task) => {
-      return task.end > latest ? task.end : latest;
-    }, startDate);
-    // Add buffer of 30 days beyond the last task
+    const latestDate = doc.tasks.reduce((latest, task) => task.end > latest ? task.end : latest, startDate);
     const daysNeeded = diffDays(latestDate, startDate) + 30;
     maxDays = Math.max(maxDays, daysNeeded);
   }
   
   const renderDays = maxDays;
   const width = renderDays * CELL_WIDTH;
-  const height = Math.max((doc.rows.length * ROW_HEIGHT) + HEADER_HEIGHT + topOffset, 500); // Ensure min height
+  const height = Math.max(currentY + HEADER_HEIGHT + topOffset, 600); 
 
   const handlePointerDown = (e: React.PointerEvent, task: any, widthPx: number) => {
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -64,12 +92,17 @@ export const Timeline: React.FC = () => {
         const newEnd = addDays(dragInfo.current.originalEnd, deltaDays);
         updateTask(dragState.id, { start: newStart, end: newEnd });
       }
+      
+      // Calculate which row we dropped onto based on Y position
       const svgRect = svgRef.current.getBoundingClientRect();
       const relativeY = e.clientY - svgRect.top - HEADER_HEIGHT - topOffset;
-      const rowIdx = Math.floor(relativeY / ROW_HEIGHT);
-      if (rowIdx >= 0 && rowIdx < doc.rows.length) {
-        const targetRowId = doc.rows[rowIdx].id;
-        if (targetRowId !== doc.tasks.find(t => t.id === dragState.id)?.rowId) updateTask(dragState.id, { rowId: targetRowId });
+      
+      const targetRow = rowLayouts.find(r => relativeY >= r.y && relativeY < (r.y + r.height));
+      
+      if (targetRow) {
+        if (targetRow.rowId !== doc.tasks.find(t => t.id === dragState.id)?.rowId) {
+           updateTask(dragState.id, { rowId: targetRow.rowId });
+        }
       }
     }
   };
@@ -98,6 +131,7 @@ export const Timeline: React.FC = () => {
            )
         })}
         <g transform={`translate(0, ${topOffset})`}>
+            {/* Grid Lines */}
             {Array.from({ length: renderDays }).map((_, i) => {
               const x = i * CELL_WIDTH;
               const date = addDays(startDate, i);
@@ -109,24 +143,44 @@ export const Timeline: React.FC = () => {
                 </g>
               );
             })}
-            {doc.rows.map((row, i) => (
-              <rect key={row.id} x={0} y={HEADER_HEIGHT + (i * ROW_HEIGHT)} width={width} height={ROW_HEIGHT} fill={i % 2 === 0 ? "transparent" : "rgba(0,0,0,0.02)"} />
+            
+            {/* Rows Backgrounds (Using dynamic layout) */}
+            {rowLayouts.map((layout, i) => (
+              <rect 
+                key={layout.rowId} 
+                x={0} 
+                y={HEADER_HEIGHT + layout.y} 
+                width={width} 
+                height={layout.height} 
+                fill={i % 2 === 0 ? "transparent" : "rgba(0,0,0,0.02)"} 
+                stroke="#f0f0f0"
+              />
             ))}
+
+            {/* Tasks (Using dynamic layout) */}
             {doc.tasks.map(task => {
-              const rowIdx = doc.rows.findIndex(r => r.id === task.rowId);
-              if (rowIdx === -1) return null;
+              // Find calculated position
+              const rLayout = rowLayouts.find(r => r.rowId === task.rowId);
+              if (!rLayout) return null;
+              const tLayout = rLayout.tasks.find(t => t.taskId === task.id);
+              if (!tLayout) return null;
+
               const startOffset = diffDays(task.start, startDate);
               const duration = diffDays(task.end, task.start) + 1;
               if (startOffset + duration < 0) return null;
+              
               const x = startOffset * CELL_WIDTH;
               const w = Math.max(duration * CELL_WIDTH, 10);
-              const y = HEADER_HEIGHT + (rowIdx * ROW_HEIGHT) + 12;
+              // Position Y based on the track calculated earlier
+              const y = HEADER_HEIGHT + tLayout.y + 40; // +40 to center vertically in the ~140px track
+
               const isDragging = dragState?.id === task.id;
               const cursor = isDragging ? 'grabbing' : 'grab';
               let barColor = isDragging ? "#0052cc" : "#3b82f6";
               if (task.status === 'done') barColor = "#36b37e"; 
               if (task.status === 'blocked') barColor = "#ff5630"; 
               if (task.status === 'in-progress') barColor = "#ffab00"; 
+              
               return (
                 <g key={task.id} transform={`translate(${x}, ${y})`} style={{ cursor }} onPointerDown={(e) => handlePointerDown(e, task, w)} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
                   <rect width={w} height={32} rx={4} fill={barColor} opacity={isDragging ? 0.9 : 1} />
