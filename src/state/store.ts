@@ -10,12 +10,13 @@ interface GanttState {
   
   // Row CRUD
   addRow: (name: string) => void;
-  updateRow: (id: string, updates: Partial<Row>) => void; // New Action
+  updateRow: (id: string, updates: Partial<Row>) => void;
   deleteRow: (id: string) => void;
   
   // Task CRUD
   addTask: (rowId: string, name: string) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
+  reorderTask: (taskId: string, newRowId: string, newIndex: number) => void; // New Action
   deleteTask: (id: string) => void;
 
   // Timebox CRUD
@@ -75,6 +76,35 @@ export const useStore = create<GanttState>((set) => ({
       tasks: s.doc.tasks.map(t => t.id === taskId ? { ...t, ...updates } : t)
     }
   })),
+
+  // New Logic: Reordering
+  reorderTask: (taskId, newRowId, newIndex) => set((s) => {
+    const taskToMove = s.doc.tasks.find(t => t.id === taskId);
+    if (!taskToMove) return s;
+
+    // 1. Remove task from array
+    const others = s.doc.tasks.filter(t => t.id !== taskId);
+
+    // 2. Separate tasks: specific row vs others
+    const targetRowTasks = others.filter(t => t.rowId === newRowId);
+    const otherRowTasks = others.filter(t => t.rowId !== newRowId);
+
+    // 3. Update the task with new Row ID
+    const updatedTask = { ...taskToMove, rowId: newRowId };
+
+    // 4. Insert at correct index
+    // Clamp index to ensure it's valid
+    const safeIndex = Math.max(0, Math.min(newIndex, targetRowTasks.length));
+    targetRowTasks.splice(safeIndex, 0, updatedTask);
+
+    return {
+      doc: {
+        ...s.doc,
+        // Reassemble: Others + Target Row (Visual order within row is preserved)
+        tasks: [...otherRowTasks, ...targetRowTasks]
+      }
+    };
+  }),
   
   deleteTask: (id) => set((s) => ({
     doc: {
