@@ -13,7 +13,7 @@ const GRID_TASK_H = 140;      // Height of one task card in the grid
 const GRID_ROW_FOOTER_H = 50; // Add Task button area
 
 export const Timeline: React.FC = () => {
-  const { doc, updateTask } = useStore();
+  const { doc, updateTask, reorderTask } = useStore();
   const showTimeboxes = doc.view.showTimeboxes;
   const topOffset = showTimeboxes ? TIMEBOX_HEIGHT : 0;
   
@@ -24,7 +24,6 @@ export const Timeline: React.FC = () => {
   const startDate = getTodayStr(); 
 
   // 1. Pre-calculate layout (Y positions) for every row and task
-  // This ensures the timeline matches the expanding grid on the left
   let currentY = 0;
   const rowLayouts = doc.rows.map(row => {
     const rowY = currentY;
@@ -34,10 +33,10 @@ export const Timeline: React.FC = () => {
     currentY += GRID_ROW_HEADER_H;
     
     // Task tracks
-    const taskLayouts = rowTasks.map(task => {
+    const taskLayouts = rowTasks.map((task, index) => {
       const taskY = currentY;
       currentY += GRID_TASK_H;
-      return { taskId: task.id, y: taskY };
+      return { taskId: task.id, y: taskY, index };
     });
     
     // Footer space
@@ -46,7 +45,7 @@ export const Timeline: React.FC = () => {
     const height = currentY - rowY;
     
     // Add margin between rows
-    currentY += 24; // Corresponds to marginBottom in Grid
+    currentY += 24; 
 
     return { rowId: row.id, y: rowY, height, tasks: taskLayouts };
   });
@@ -87,24 +86,44 @@ export const Timeline: React.FC = () => {
       const newEnd = addDays(dragInfo.current.originalEnd, deltaDays);
       if (diffDays(newEnd, dragInfo.current.originalStart) >= 0) updateTask(dragState.id, { end: newEnd });
     } else if (dragState.mode === 'move') {
+      // 1. Horizontal Date Move
       if (deltaDays !== 0) {
         const newStart = addDays(dragInfo.current.originalStart, deltaDays);
         const newEnd = addDays(dragInfo.current.originalEnd, deltaDays);
         updateTask(dragState.id, { start: newStart, end: newEnd });
       }
       
-      // Calculate which row we dropped onto based on Y position
+      // 2. Vertical Row/Index Move (Reorder)
       const svgRect = svgRef.current.getBoundingClientRect();
       const relativeY = e.clientY - svgRect.top - HEADER_HEIGHT - topOffset;
       
       const targetRow = rowLayouts.find(r => relativeY >= r.y && relativeY < (r.y + r.height));
       
       if (targetRow) {
-        if (targetRow.rowId !== doc.tasks.find(t => t.id === dragState.id)?.rowId) {
-           updateTask(dragState.id, { rowId: targetRow.rowId });
+        // Calculate which index in this row we are hovering over
+        const internalY = relativeY - targetRow.y - GRID_ROW_HEADER_H;
+        // Clamp index to valid range
+        const rawIndex = Math.floor(internalY / GRID_TASK_H);
+        const currentTasksInRow = doc.tasks.filter(t => t.rowId === targetRow.rowId);
+        
+        // Ensure index is within bounds (0 to length)
+        let targetIndex = Math.max(0, rawIndex);
+        if (targetIndex > currentTasksInRow.length) targetIndex = currentTasksInRow.length;
+
+        const currentTask = doc.tasks.find(t => t.id === dragState.id);
+
+        // Check if we actually need to change anything to avoid jitter
+        if (currentTask && (currentTask.rowId !== targetRow.rowId || getTaskIndex(currentTask) !== targetIndex)) {
+             reorderTask(dragState.id, targetRow.rowId, targetIndex);
         }
       }
     }
+  };
+
+  // Helper to find current index of a task
+  const getTaskIndex = (task: any) => {
+      const tasksInRow = doc.tasks.filter(t => t.rowId === task.rowId);
+      return tasksInRow.findIndex(t => t.id === task.id);
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -144,7 +163,7 @@ export const Timeline: React.FC = () => {
               );
             })}
             
-            {/* Rows Backgrounds (Using dynamic layout) */}
+            {/* Rows Backgrounds */}
             {rowLayouts.map((layout, i) => (
               <rect 
                 key={layout.rowId} 
@@ -157,9 +176,8 @@ export const Timeline: React.FC = () => {
               />
             ))}
 
-            {/* Tasks (Using dynamic layout) */}
+            {/* Tasks */}
             {doc.tasks.map(task => {
-              // Find calculated position
               const rLayout = rowLayouts.find(r => r.rowId === task.rowId);
               if (!rLayout) return null;
               const tLayout = rLayout.tasks.find(t => t.taskId === task.id);
@@ -171,8 +189,7 @@ export const Timeline: React.FC = () => {
               
               const x = startOffset * CELL_WIDTH;
               const w = Math.max(duration * CELL_WIDTH, 10);
-              // Position Y based on the track calculated earlier
-              const y = HEADER_HEIGHT + tLayout.y + 40; // +40 to center vertically in the ~140px track
+              const y = HEADER_HEIGHT + tLayout.y + 40; 
 
               const isDragging = dragState?.id === task.id;
               const cursor = isDragging ? 'grabbing' : 'grab';
