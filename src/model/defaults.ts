@@ -11,13 +11,13 @@ export const createDefaultDoc = (): GanttDocV1 => {
   return {
     version: 1,
     title: "New Project",
-    rows: [{ id: row1, name: "Phase 1", order: 0 }],
+    rows: [{ id: row1, name: "Main Project Phase", order: 0 }],
     tasks: [{ 
       id: uuidv4(), 
       rowId: row1, 
-      name: "Task A", 
+      name: "Kickoff Task", 
       start: today.toISOString().split('T')[0], 
-      end: tomorrow.toISOString().split('T')[0], // Default 2 days
+      end: tomorrow.toISOString().split('T')[0],
       owner: "Team",
       status: "todo",
       link: "" 
@@ -25,7 +25,8 @@ export const createDefaultDoc = (): GanttDocV1 => {
     timeboxes: [], 
     view: { 
       zoom: "day",
-      showTimeboxes: false 
+      showTimeboxes: false,
+      collapsedRowIds: [] 
     }
   };
 };
