@@ -7,13 +7,14 @@ const HEADER_HEIGHT = 10;
 const TIMEBOX_HEIGHT = 30; 
 const RESIZE_HANDLE_WIDTH = 10;
 
-// COMPACT LAYOUT CONSTANTS
-const GRID_ROW_HEADER_H = 40; // Reduced from 60
-const GRID_TASK_H = 110;      // Reduced from 160 (Tight fit for 90px bubble)
-const GRID_ROW_FOOTER_H = 40; // Reduced from 60
+// ULTRA COMPACT LAYOUT CONSTANTS
+const GRID_ROW_HEADER_H = 40; 
+const GRID_TASK_H = 80;       // Reduced to 80px (Matches Grid Card)
+const GRID_ROW_FOOTER_H = 40; 
 
 // Visual Styling
 const BUBBLE_RADIUS = 6;
+const BUBBLE_HEIGHT = 70;     // 70px Bubble in 80px Track = 5px gap
 
 export const Timeline: React.FC = () => {
   const { doc, updateTask, reorderTask } = useStore();
@@ -41,7 +42,7 @@ export const Timeline: React.FC = () => {
     
     currentY += GRID_ROW_FOOTER_H;
     const height = currentY - rowY;
-    currentY += 10; // Minimal Margin between rows
+    currentY += 4; // Minimal margin between rows (4px)
 
     return { rowId: row.id, y: rowY, height, tasks: taskLayouts };
   });
@@ -164,12 +165,7 @@ export const Timeline: React.FC = () => {
               const x = startOffset * CELL_WIDTH;
               const w = Math.max(duration * CELL_WIDTH, 10);
               
-              // Dynamic Content Sizing
-              const hasOwner = !!task.owner;
-              // Reduce max bubble height to fit in new 110px track
-              const bubbleHeight = hasOwner ? 90 : 65; 
-
-              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - bubbleHeight) / 2); 
+              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - BUBBLE_HEIGHT) / 2); 
 
               const isDragging = dragState?.id === task.id;
               const cursor = isDragging ? 'grabbing' : 'grab';
@@ -179,6 +175,8 @@ export const Timeline: React.FC = () => {
               if (task.status === 'blocked') barColor = "#ff5630"; 
               if (task.status === 'in-progress') barColor = "#ffab00"; 
               
+              const hasOwner = !!task.owner;
+
               return (
                 <g 
                   key={task.id} 
@@ -191,37 +189,37 @@ export const Timeline: React.FC = () => {
                   {/* Bubble */}
                   <rect 
                     width={w} 
-                    height={bubbleHeight} 
+                    height={BUBBLE_HEIGHT} 
                     rx={BUBBLE_RADIUS} 
                     fill={barColor} 
                     opacity={isDragging ? 0.9 : 1} 
-                    filter="drop-shadow(0px 2px 2px rgba(0,0,0,0.1))"
+                    filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.1))"
                   />
                   
-                  {/* Content */}
-                  <svg x={0} y={0} width={w} height={bubbleHeight}>
-                     <text x={10} y={24} fontSize="13" fontWeight="bold" fill="white" style={{ userSelect: 'none' }}>
+                  {/* Content (Clipped) */}
+                  <svg x={0} y={0} width={w} height={BUBBLE_HEIGHT}>
+                     <text x={8} y={20} fontSize="12" fontWeight="bold" fill="white" style={{ userSelect: 'none' }}>
                        {task.name}
                      </text>
                      {hasOwner && (
-                       <text x={10} y={44} fontSize="12" fontStyle="italic" fill="white" opacity={0.9} style={{ userSelect: 'none' }}>
+                       <text x={8} y={36} fontSize="11" fontStyle="italic" fill="white" opacity={0.9} style={{ userSelect: 'none' }}>
                          {task.owner}
                        </text>
                      )}
-                     <text x={10} y={hasOwner ? 68 : 46} fontSize="11" fill="white" opacity={0.8} style={{ userSelect: 'none' }}>
+                     <text x={8} y={hasOwner ? 54 : 36} fontSize="10" fill="white" opacity={0.8} style={{ userSelect: 'none' }}>
                        {task.start.slice(5)} → {task.end.slice(5)}
                      </text>
                      {task.link && (
-                       <g transform={`translate(${w - 24}, 8)`} opacity={0.8}>
-                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                       <g transform={`translate(${w - 20}, 6)`} opacity={0.8}>
+                         <path d="M9 11a4 4 0 0 0 6 .4l2.5-2.5a4 4 0 0 0-5.6-5.6l-1.4 1.4" fill="none" stroke="white" strokeWidth="1.5"/>
+                         <path d="M12 9a4 4 0 0 0-6-.4l-2.5 2.5a4 4 0 0 0 5.6 5.6l1.4-1.4" fill="none" stroke="white" strokeWidth="1.5"/>
                        </g>
                      )}
                   </svg>
 
                   {/* Handles */}
-                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={bubbleHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
-                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={bubbleHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={BUBBLE_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={BUBBLE_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} />
                 </g>
               );
             })}
