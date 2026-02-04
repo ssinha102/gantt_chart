@@ -3,23 +3,23 @@ import { useStore } from '../../state/store';
 import { Task } from '../../model/types';
 
 export const DebugList: React.FC = () => {
-  const { doc, addRow, addTask, deleteRow, deleteTask, updateTask } = useStore();
+  const { doc, addRow, addTask, deleteRow, deleteTask, updateTask, updateRow } = useStore();
 
   const handleStatusChange = (taskId: string, val: string) => {
     updateTask(taskId, { status: val as Task['status'] });
   };
 
   return (
-    <div style={{ padding: '1rem', height: '100%', overflowY: 'auto', background: '#fafbfc' }}>
+    <div id="grid-container" style={{ padding: '1rem', height: '100%', overflowY: 'auto', background: '#fafbfc' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 style={{ margin: 0 }}>Work Breakdown</h3>
-        <button onClick={() => addRow("New Stream")} style={{ padding: '4px 8px', cursor: 'pointer' }}>+ Add Row</button>
+        <button onClick={() => addRow("New Row")} style={{ padding: '4px 8px', cursor: 'pointer' }}>+ Add Row</button>
       </div>
       
       <div>
         {doc.rows.map(row => (
           <div key={row.id} style={{ marginBottom: '1.5rem', border: '1px solid #dfe1e6', borderRadius: '6px', background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            {/* Row Header */}
+            {/* Row Header (Now Editable) */}
             <div style={{ 
               padding: '0.75rem', 
               borderBottom: '1px solid #dfe1e6', 
@@ -30,8 +30,19 @@ export const DebugList: React.FC = () => {
               borderTopLeftRadius: '6px',
               borderTopRightRadius: '6px'
             }}>
-              <span style={{ fontWeight: '700', color: '#172b4d' }}>{row.name}</span>
-              <button onClick={() => deleteRow(row.id)} style={{ color: '#de350b', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.8rem' }}>Delete Row</button>
+              <input 
+                value={row.name}
+                onChange={(e) => updateRow(row.id, { name: e.target.value })}
+                style={{ 
+                  fontWeight: '700', 
+                  color: '#172b4d', 
+                  border: '1px solid transparent', 
+                  background: 'transparent',
+                  fontSize: '1rem',
+                  width: '100%'
+                }}
+              />
+              <button onClick={() => deleteRow(row.id)} style={{ color: '#de350b', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Delete Row</button>
             </div>
             
             {/* Task List */}
@@ -60,16 +71,12 @@ export const DebugList: React.FC = () => {
 
                   {/* Details Line: Dates, Owner, Status */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    
-                    {/* Owner Input */}
                     <input 
                       placeholder="Owner..." 
                       value={task.owner || ''} 
                       onChange={(e) => updateTask(task.id, { owner: e.target.value })}
                       style={{ border: '1px solid #dfe1e6', borderRadius: '3px', padding: '4px', fontSize: '0.85rem' }}
                     />
-
-                    {/* Status Dropdown */}
                     <select 
                       value={task.status || 'todo'} 
                       onChange={(e) => handleStatusChange(task.id, e.target.value)}
@@ -80,8 +87,6 @@ export const DebugList: React.FC = () => {
                       <option value="blocked">Blocked</option>
                       <option value="done">Done</option>
                     </select>
-
-                    {/* Start Date */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#666' }}>
                       <span>Start:</span>
                       <input 
@@ -91,8 +96,6 @@ export const DebugList: React.FC = () => {
                         style={{ border: '1px solid #dfe1e6', borderRadius: '3px', padding: '2px', width: '100%' }}
                       />
                     </div>
-
-                    {/* End Date */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#666' }}>
                       <span>Due:</span>
                       <input 
@@ -105,19 +108,9 @@ export const DebugList: React.FC = () => {
                   </div>
                 </div>
               ))}
-              
               <button 
                 onClick={() => addTask(row.id, "New Task")} 
-                style={{ 
-                  width: '100%', 
-                  padding: '6px', 
-                  marginTop: '4px', 
-                  border: '1px dashed #ccc', 
-                  background: 'transparent', 
-                  color: '#666',
-                  cursor: 'pointer',
-                  borderRadius: '4px'
-                }}
+                style={{ width: '100%', padding: '6px', marginTop: '4px', border: '1px dashed #ccc', background: 'transparent', color: '#666', cursor: 'pointer', borderRadius: '4px' }}
               >
                 + Add Task
               </button>
