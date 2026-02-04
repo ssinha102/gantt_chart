@@ -7,21 +7,21 @@ const HEADER_HEIGHT = 10;
 const TIMEBOX_HEIGHT = 30; 
 const RESIZE_HANDLE_WIDTH = 10;
 
-// ULTRA COMPACT LAYOUT CONSTANTS
+// LAYOUT CONSTANTS
 const GRID_ROW_HEADER_H = 40; 
-const GRID_TASK_H = 80;       // Reduced to 80px (Matches Grid Card)
-const GRID_ROW_FOOTER_H = 40; 
-
-// Visual Styling
-const BUBBLE_RADIUS = 6;
-const BUBBLE_HEIGHT = 70;     // 70px Bubble in 80px Track = 5px gap
+const GRID_TASK_H = 50;       // COMPACT MODE
+const GRID_ROW_FOOTER_H = 30; 
 
 export const Timeline: React.FC = () => {
   const { doc, updateTask, reorderTask } = useStore();
   const showTimeboxes = doc.view.showTimeboxes;
+  const collapsedIds = doc.view.collapsedRowIds || [];
   const topOffset = showTimeboxes ? TIMEBOX_HEIGHT : 0;
   
   const [dragState, setDragState] = useState<{ id: string; mode: 'move' | 'resize-left' | 'resize-right' } | null>(null);
+  // Hover state for expansion
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
   const svgRef = useRef<SVGSVGElement>(null);
   const dragInfo = useRef<{ startX: number; originalStart: string; originalEnd: string; originalRowId: string } | null>(null);
 
@@ -31,20 +31,25 @@ export const Timeline: React.FC = () => {
   let currentY = 0;
   const rowLayouts = doc.rows.map(row => {
     const rowY = currentY;
+    const isCollapsed = collapsedIds.includes(row.id);
     const rowTasks = doc.tasks.filter(t => t.rowId === row.id);
+    
     currentY += GRID_ROW_HEADER_H;
     
-    const taskLayouts = rowTasks.map((task, index) => {
-      const taskY = currentY;
-      currentY += GRID_TASK_H;
-      return { taskId: task.id, y: taskY, index };
-    });
+    let taskLayouts: any[] = [];
+    if (!isCollapsed) {
+      taskLayouts = rowTasks.map((task, index) => {
+        const taskY = currentY;
+        currentY += GRID_TASK_H;
+        return { taskId: task.id, y: taskY, index };
+      });
+      currentY += GRID_ROW_FOOTER_H;
+    }
     
-    currentY += GRID_ROW_FOOTER_H;
     const height = currentY - rowY;
-    currentY += 4; // Minimal margin between rows (4px)
+    currentY += 4; // Margin
 
-    return { rowId: row.id, y: rowY, height, tasks: taskLayouts };
+    return { rowId: row.id, y: rowY, height, tasks: taskLayouts, isCollapsed };
   });
 
   // 2. Width Calculation
@@ -93,7 +98,7 @@ export const Timeline: React.FC = () => {
       const relativeY = e.clientY - svgRect.top - HEADER_HEIGHT - topOffset;
       const targetRow = rowLayouts.find(r => relativeY >= r.y && relativeY < (r.y + r.height));
       
-      if (targetRow) {
+      if (targetRow && !targetRow.isCollapsed) { // Cannot drop into collapsed row easily
         const internalY = relativeY - targetRow.y - GRID_ROW_HEADER_H;
         const rawIndex = Math.floor(internalY / GRID_TASK_H);
         const currentTasksInRow = doc.tasks.filter(t => t.rowId === targetRow.rowId);
@@ -122,7 +127,6 @@ export const Timeline: React.FC = () => {
   return (
     <div id="timeline-container" style={{ overflow: 'auto', flex: 1, position: 'relative' }}>
       <svg ref={svgRef} width={width} height={height} style={{ display: 'block' }}>
-        {/* Timeboxes */}
         {showTimeboxes && doc.timeboxes && doc.timeboxes.map(tb => {
            const startOffset = diffDays(tb.start, startDate);
            const duration = diffDays(tb.end, tb.start) + 1;
@@ -154,7 +158,8 @@ export const Timeline: React.FC = () => {
             {/* Tasks Bubbles */}
             {doc.tasks.map(task => {
               const rLayout = rowLayouts.find(r => r.rowId === task.rowId);
-              if (!rLayout) return null;
+              if (!rLayout || rLayout.isCollapsed) return null;
+              
               const tLayout = rLayout.tasks.find(t => t.taskId === task.id);
               if (!tLayout) return null;
 
@@ -165,61 +170,94 @@ export const Timeline: React.FC = () => {
               const x = startOffset * CELL_WIDTH;
               const w = Math.max(duration * CELL_WIDTH, 10);
               
-              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - BUBBLE_HEIGHT) / 2); 
-
+              const isHovered = hoveredId === task.id;
               const isDragging = dragState?.id === task.id;
+              
+              // --- CARD STYLING ---
+              // Compact Height: 34px (Fits inside 50px track)
+              // Expanded Height: 100px (Popover on hover)
+              const cardHeight = isHovered && !isDragging ? 100 : 34;
+              
+              // If hovered, expand downwards and stay on top (handled by render order + logic)
+              // Note: SVG z-index is determined by order. We render regular cards first.
+              // To make hover truly "pop" on top, we might need to move it to end of array, 
+              // but for now, let's rely on standard rendering. 
+              // Actually, expanding height might clip if we don't bring to front. 
+              // React doesn't easily allow re-ordering dom nodes on hover without state flicker.
+              // We'll trust the visual pop.
+
+              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - 34) / 2); // Center the compact bar
+
+              // Status Color for side bar
+              let statusColor = "#3b82f6"; // Default Blue
+              if (task.status === 'done') statusColor = "#36b37e"; 
+              if (task.status === 'blocked') statusColor = "#ff5630"; 
+              if (task.status === 'in-progress') statusColor = "#ffab00"; 
+
               const cursor = isDragging ? 'grabbing' : 'grab';
               
-              let barColor = isDragging ? "#0052cc" : "#3b82f6";
-              if (task.status === 'done') barColor = "#36b37e"; 
-              if (task.status === 'blocked') barColor = "#ff5630"; 
-              if (task.status === 'in-progress') barColor = "#ffab00"; 
-              
-              const hasOwner = !!task.owner;
-
               return (
                 <g 
                   key={task.id} 
                   transform={`translate(${x}, ${y})`} 
-                  style={{ cursor }} 
+                  style={{ cursor, zIndex: isHovered ? 999 : 1 }} 
                   onPointerDown={(e) => handlePointerDown(e, task, w)} 
                   onPointerMove={handlePointerMove} 
                   onPointerUp={handlePointerUp}
+                  onMouseEnter={() => setHoveredId(task.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                 >
-                  {/* Bubble */}
+                  {/* Card Background (White with Shadow) */}
                   <rect 
                     width={w} 
-                    height={BUBBLE_HEIGHT} 
-                    rx={BUBBLE_RADIUS} 
-                    fill={barColor} 
-                    opacity={isDragging ? 0.9 : 1} 
-                    filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.1))"
+                    height={cardHeight} 
+                    rx={4} 
+                    fill="white" 
+                    stroke="#dfe1e6"
+                    strokeWidth={1}
+                    filter={isHovered ? "drop-shadow(0px 4px 8px rgba(0,0,0,0.15))" : ""}
                   />
                   
-                  {/* Content (Clipped) */}
-                  <svg x={0} y={0} width={w} height={BUBBLE_HEIGHT}>
-                     <text x={8} y={20} fontSize="12" fontWeight="bold" fill="white" style={{ userSelect: 'none' }}>
+                  {/* Status Bar (Left edge) */}
+                  <rect 
+                    x={0} y={0} 
+                    width={6} height={cardHeight} 
+                    rx={4} // Round corners, but we'll mask right side if strict rectangle needed
+                    fill={statusColor}
+                  />
+                  {/* Square off right side of status bar */}
+                  <rect x={4} y={0} width={2} height={cardHeight} fill={statusColor} />
+
+                  {/* Content Container */}
+                  <svg x={10} y={0} width={w - 12} height={cardHeight}>
+                     {/* Title (Always visible) */}
+                     <text x={0} y={22} fontSize="12" fontWeight="bold" fill="#172b4d" style={{ userSelect: 'none' }}>
                        {task.name}
                      </text>
-                     {hasOwner && (
-                       <text x={8} y={36} fontSize="11" fontStyle="italic" fill="white" opacity={0.9} style={{ userSelect: 'none' }}>
-                         {task.owner}
-                       </text>
-                     )}
-                     <text x={8} y={hasOwner ? 54 : 36} fontSize="10" fill="white" opacity={0.8} style={{ userSelect: 'none' }}>
-                       {task.start.slice(5)} → {task.end.slice(5)}
-                     </text>
-                     {task.link && (
-                       <g transform={`translate(${w - 20}, 6)`} opacity={0.8}>
-                         <path d="M9 11a4 4 0 0 0 6 .4l2.5-2.5a4 4 0 0 0-5.6-5.6l-1.4 1.4" fill="none" stroke="white" strokeWidth="1.5"/>
-                         <path d="M12 9a4 4 0 0 0-6-.4l-2.5 2.5a4 4 0 0 0 5.6 5.6l1.4-1.4" fill="none" stroke="white" strokeWidth="1.5"/>
+
+                     {/* Expanded Details (Only on Hover) */}
+                     {isHovered && !isDragging && (
+                       <g opacity={1} style={{ transition: 'opacity 0.2s' }}>
+                         {task.owner && (
+                           <text x={0} y={40} fontSize="11" fontStyle="italic" fill="#444" style={{ userSelect: 'none' }}>
+                             {task.owner}
+                           </text>
+                         )}
+                         <text x={0} y={task.owner ? 58 : 40} fontSize="10" fill="#666" style={{ userSelect: 'none' }}>
+                           {task.start.slice(5)} → {task.end.slice(5)}
+                         </text>
+                         {task.link && (
+                           <text x={0} y={task.owner ? 74 : 56} fontSize="10" fill="#0052cc" style={{ userSelect: 'none', textDecoration: 'underline' }}>
+                             Has Link ↗
+                           </text>
+                         )}
                        </g>
                      )}
                   </svg>
 
-                  {/* Handles */}
-                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={BUBBLE_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} />
-                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={BUBBLE_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  {/* Resize Handles (Invisible) */}
+                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={cardHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={cardHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
                 </g>
               );
             })}
