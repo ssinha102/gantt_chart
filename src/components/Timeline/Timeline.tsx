@@ -5,12 +5,12 @@ import { addDays, diffDays, getTodayStr } from '../../utils/dateUtils';
 const CELL_WIDTH = 40; 
 const HEADER_HEIGHT = 10; 
 const TIMEBOX_HEIGHT = 30; 
-const RESIZE_HANDLE_WIDTH = 5; // Reduced from 10 to make "Move" easier to grab
+const RESIZE_HANDLE_WIDTH = 5; 
 
-// LAYOUT CONSTANTS
+// LAYOUT CONSTANTS (UPDATED)
 const GRID_ROW_HEADER_H = 40; 
-const GRID_TASK_H = 50;       // COMPACT MODE
-const GRID_ROW_FOOTER_H = 30; 
+const GRID_TASK_H = 120;      // INCREASED: Matches Grid Editor Height
+const GRID_ROW_FOOTER_H = 36; // Matches Grid Footer
 
 export const Timeline: React.FC = () => {
   const { doc, updateTask, reorderTask } = useStore();
@@ -19,7 +19,6 @@ export const Timeline: React.FC = () => {
   const topOffset = showTimeboxes ? TIMEBOX_HEIGHT : 0;
   
   const [dragState, setDragState] = useState<{ id: string; mode: 'move' | 'resize-left' | 'resize-right' } | null>(null);
-  // Hover state for expansion
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -47,7 +46,7 @@ export const Timeline: React.FC = () => {
     }
     
     const height = currentY - rowY;
-    currentY += 4; // Margin
+    currentY += 10; // Margin
 
     return { rowId: row.id, y: rowY, height, tasks: taskLayouts, isCollapsed };
   });
@@ -71,7 +70,6 @@ export const Timeline: React.FC = () => {
     const clickX = e.clientX - rect.left; 
     let mode: 'move' | 'resize-left' | 'resize-right' = 'move';
     
-    // Adjusted logic to ensure move is prioritized on very small tasks
     if (clickX < RESIZE_HANDLE_WIDTH) mode = 'resize-left';
     else if (clickX > widthPx - RESIZE_HANDLE_WIDTH) mode = 'resize-right';
 
@@ -101,7 +99,7 @@ export const Timeline: React.FC = () => {
       const relativeY = e.clientY - svgRect.top - HEADER_HEIGHT - topOffset;
       const targetRow = rowLayouts.find(r => relativeY >= r.y && relativeY < (r.y + r.height));
       
-      if (targetRow && !targetRow.isCollapsed) { // Cannot drop into collapsed row easily
+      if (targetRow && !targetRow.isCollapsed) { 
         const internalY = relativeY - targetRow.y - GRID_ROW_HEADER_H;
         const rawIndex = Math.floor(internalY / GRID_TASK_H);
         const currentTasksInRow = doc.tasks.filter(t => t.rowId === targetRow.rowId);
@@ -130,6 +128,7 @@ export const Timeline: React.FC = () => {
   return (
     <div id="timeline-container" style={{ overflow: 'auto', flex: 1, position: 'relative' }}>
       <svg ref={svgRef} width={width} height={height} style={{ display: 'block' }}>
+        {/* Timeboxes */}
         {showTimeboxes && doc.timeboxes && doc.timeboxes.map(tb => {
            const startOffset = diffDays(tb.start, startDate);
            const duration = diffDays(tb.end, tb.start) + 1;
@@ -176,12 +175,15 @@ export const Timeline: React.FC = () => {
               const isHovered = hoveredId === task.id;
               const isDragging = dragState?.id === task.id;
               
-              const cardHeight = isHovered && !isDragging ? 100 : 34;
-              
-              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - 34) / 2); // Center the compact bar
+              // Bubble Size:
+              // Standard: 90px (Fits nicely in 120px track with padding)
+              const bubbleHeight = 90; 
+              // Hover Popover: 120px (Slightly larger to show link info clearly)
+              const displayHeight = isHovered && !isDragging ? 110 : bubbleHeight;
 
-              // Status Color for side bar
-              let statusColor = "#3b82f6"; // Default Blue
+              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - bubbleHeight) / 2); 
+
+              let statusColor = "#3b82f6"; 
               if (task.status === 'done') statusColor = "#36b37e"; 
               if (task.status === 'blocked') statusColor = "#ff5630"; 
               if (task.status === 'in-progress') statusColor = "#ffab00"; 
@@ -199,10 +201,10 @@ export const Timeline: React.FC = () => {
                   onMouseEnter={() => setHoveredId(task.id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
-                  {/* Card Background (White with Shadow) */}
+                  {/* Card Background */}
                   <rect 
                     width={w} 
-                    height={cardHeight} 
+                    height={displayHeight} 
                     rx={4} 
                     fill="white" 
                     stroke="#dfe1e6"
@@ -210,45 +212,37 @@ export const Timeline: React.FC = () => {
                     filter={isHovered ? "drop-shadow(0px 4px 8px rgba(0,0,0,0.15))" : ""}
                   />
                   
-                  {/* Status Bar (Left edge) */}
-                  <rect 
-                    x={0} y={0} 
-                    width={6} height={cardHeight} 
-                    rx={4} 
-                    fill={statusColor}
-                  />
-                  <rect x={4} y={0} width={2} height={cardHeight} fill={statusColor} />
+                  {/* Status Bar */}
+                  <rect x={0} y={0} width={6} height={displayHeight} rx={4} fill={statusColor} />
+                  <rect x={4} y={0} width={2} height={displayHeight} fill={statusColor} />
 
                   {/* Content Container */}
-                  <svg x={10} y={0} width={w - 12} height={cardHeight}>
-                     {/* Title (Always visible) */}
+                  <svg x={10} y={0} width={w - 12} height={displayHeight}>
                      <text x={0} y={22} fontSize="12" fontWeight="bold" fill="#172b4d" style={{ userSelect: 'none' }}>
                        {task.name}
                      </text>
 
-                     {/* Expanded Details (Only on Hover) */}
-                     {isHovered && !isDragging && (
-                       <g opacity={1} style={{ transition: 'opacity 0.2s' }}>
-                         {task.owner && (
-                           <text x={0} y={40} fontSize="11" fontStyle="italic" fill="#444" style={{ userSelect: 'none' }}>
-                             {task.owner}
-                           </text>
-                         )}
-                         <text x={0} y={task.owner ? 58 : 40} fontSize="10" fill="#666" style={{ userSelect: 'none' }}>
-                           {task.start.slice(5)} → {task.end.slice(5)}
+                     {/* Regular View */}
+                     <g opacity={1}>
+                       {task.owner && (
+                         <text x={0} y={40} fontSize="11" fontStyle="italic" fill="#444" style={{ userSelect: 'none' }}>
+                           {task.owner}
                          </text>
-                         {task.link && (
-                           <text x={0} y={task.owner ? 74 : 56} fontSize="10" fill="#0052cc" style={{ userSelect: 'none', textDecoration: 'underline' }}>
-                             Has Link ↗
-                           </text>
-                         )}
-                       </g>
-                     )}
+                       )}
+                       <text x={0} y={task.owner ? 58 : 40} fontSize="10" fill="#666" style={{ userSelect: 'none' }}>
+                         {task.start.slice(5)} → {task.end.slice(5)}
+                       </text>
+                       {task.link && (
+                         <text x={0} y={task.owner ? 74 : 56} fontSize="10" fill="#0052cc" style={{ userSelect: 'none', textDecoration: 'underline' }}>
+                           Has Link ↗
+                         </text>
+                       )}
+                     </g>
                   </svg>
 
-                  {/* Resize Handles (Invisible, but now narrower) */}
-                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={cardHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
-                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={cardHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  {/* Handles */}
+                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={displayHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={displayHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
                 </g>
               );
             })}
