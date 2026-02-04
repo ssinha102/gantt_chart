@@ -22,10 +22,10 @@ export const DebugList: React.FC = () => {
   const collapsedIds = doc.view.collapsedRowIds || [];
 
   return (
-    <div id="grid-container" style={{ padding: '0.25rem', height: '100%', overflowY: 'auto', background: '#fafbfc' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', padding: '0 0.25rem' }}>
-        <h3 style={{ margin: 0, fontSize: '0.9rem' }}>Project Board</h3>
-        <button onClick={() => addRow("New Phase")} style={{ padding: '1px 6px', cursor: 'pointer', fontSize: '0.75rem' }}>+ Phase</button>
+    <div id="grid-container" style={{ padding: '0.5rem', height: '100%', overflowY: 'auto', background: '#fafbfc' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', padding: '0 0.5rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1rem' }}>Project Board</h3>
+        <button onClick={() => addRow("New Phase")} style={{ padding: '4px 10px', cursor: 'pointer', fontSize: '0.8rem' }}>+ Phase</button>
       </div>
       
       <div>
@@ -34,11 +34,11 @@ export const DebugList: React.FC = () => {
           const tasks = doc.tasks.filter(t => t.rowId === row.id);
 
           return (
-            <div key={row.id} style={{ marginBottom: '4px', border: '1px solid #dfe1e6', borderRadius: '4px', background: '#fff' }}>
+            <div key={row.id} style={{ marginBottom: '10px', border: '1px solid #dfe1e6', borderRadius: '4px', background: '#fff' }}>
               {/* Row Header */}
               <div style={{ 
                 height: '40px',
-                padding: '0 0.25rem', 
+                padding: '0 0.5rem', 
                 borderBottom: isCollapsed ? 'none' : '1px solid #dfe1e6', 
                 display: 'flex', 
                 justifyContent: 'space-between', 
@@ -49,7 +49,7 @@ export const DebugList: React.FC = () => {
                 borderBottomLeftRadius: isCollapsed ? '4px' : '0',
                 borderBottomRightRadius: isCollapsed ? '4px' : '0'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '8px' }}>
                   <button 
                     onClick={() => toggleRowCollapse(row.id)}
                     style={{ 
@@ -67,84 +67,94 @@ export const DebugList: React.FC = () => {
                       color: '#172b4d', 
                       border: '1px solid transparent', 
                       background: 'transparent',
-                      fontSize: '0.85rem',
+                      fontSize: '0.9rem',
                       width: '100%'
                     }}
                   />
                 </div>
-                <button onClick={() => deleteRow(row.id)} style={{ color: '#de350b', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>Del</button>
+                <button onClick={() => deleteRow(row.id)} style={{ color: '#de350b', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.7rem' }}>Del</button>
               </div>
               
               {/* Task List */}
               {!isCollapsed && (
-                <div style={{ padding: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0' }}>
+                <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0' }}>
                   {tasks.map(task => (
                     <div key={task.id} style={{ 
-                      height: '50px', 
+                      height: '120px', // INCREASED: Comfortable height
                       boxSizing: 'border-box',
                       display: 'flex', 
                       flexDirection: 'column', 
-                      justifyContent: 'center',
-                      gap: '2px',
-                      padding: '0 6px', 
+                      justifyContent: 'space-evenly',
+                      padding: '8px', 
                       borderBottom: '1px solid #eee', 
                       position: 'relative',
                       background: '#fff'
                     }}>
                       
-                      {/* Row 1: Title & Actions */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {/* Line 1: Title & Delete */}
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input 
                           value={task.name} 
                           onChange={(e) => updateTask(task.id, { name: e.target.value })}
-                          style={{ flex: 1, fontWeight: '600', fontSize: '0.8rem', border: 'none', background: 'transparent', padding: 0 }}
+                          style={{ flex: 1, fontWeight: '700', fontSize: '0.9rem', border: 'none', borderBottom: '1px dotted #ccc', padding: '2px 0' }}
                           placeholder="Task Title"
                         />
-                        <select 
+                        <button onClick={() => deleteTask(task.id)} style={{ color: '#de350b', cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1.1rem', padding: 0 }}>&times;</button>
+                      </div>
+
+                      {/* Line 2: Owner (Dedicated Line) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ fontSize: '0.75rem', color: '#666', width: '45px' }}>Owner:</label>
+                        <input 
+                          placeholder="Unassigned" 
+                          value={task.owner || ''} 
+                          onChange={(e) => updateTask(task.id, { owner: e.target.value })}
+                          style={{ flex: 1, border: '1px solid #eee', borderRadius: '3px', padding: '3px', fontSize: '0.8rem', background: '#fafafa' }}
+                        />
+                      </div>
+
+                      {/* Line 3: Dates & Status */}
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                         <input 
+                           type="date" 
+                           value={task.start} 
+                           onChange={(e) => updateTask(task.id, { start: e.target.value })}
+                           style={{ width: '90px', border: '1px solid #eee', borderRadius: '3px', padding: '2px', fontSize: '0.75rem' }}
+                         />
+                         <span style={{ fontSize: '0.7rem', color: '#999' }}>to</span>
+                         <input 
+                           type="date" 
+                           value={task.end} 
+                           onChange={(e) => updateTask(task.id, { end: e.target.value })}
+                           style={{ width: '90px', border: '1px solid #eee', borderRadius: '3px', padding: '2px', fontSize: '0.75rem' }}
+                         />
+                         <select 
                           value={task.status || 'todo'} 
                           onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                          style={{ fontSize: '0.7rem', padding: '0', border: 'none', color: '#666', maxWidth: '60px' }}
+                          style={{ marginLeft: 'auto', fontSize: '0.75rem', padding: '2px', border: '1px solid #eee', borderRadius: '3px' }}
                         >
                           <option value="todo">To Do</option>
                           <option value="in-progress">Doing</option>
                           <option value="blocked">Block</option>
                           <option value="done">Done</option>
                         </select>
-                        <button onClick={() => deleteTask(task.id)} style={{ color: '#de350b', cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1rem', lineHeight: '1', padding: 0 }}>&times;</button>
                       </div>
 
-                      {/* Row 2: Dates & Link Input (Using the helper functions here) */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                         <span style={{ fontSize: '0.7rem', color: '#999' }}>📅</span>
-                         <input 
-                           type="date" 
-                           value={task.start} 
-                           onChange={(e) => updateTask(task.id, { start: e.target.value })}
-                           style={{ border: 'none', padding: '0', fontSize: '0.7rem', color: '#666', width: '75px' }}
-                         />
-                         <span style={{ fontSize: '0.7rem', color: '#ccc' }}>→</span>
-                         <input 
-                           type="date" 
-                           value={task.end} 
-                           onChange={(e) => updateTask(task.id, { end: e.target.value })}
-                           style={{ border: 'none', padding: '0', fontSize: '0.7rem', color: '#666', width: '75px' }}
-                         />
-                         
-                         {/* Link Input - Fixes 'handleLinkChange' unused error */}
-                         <input 
-                            placeholder="Link..."
+                      {/* Line 4: Link */}
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <label style={{ fontSize: '0.75rem', color: '#666', width: '45px' }}>Link:</label>
+                          <input 
+                            placeholder="https://..."
                             value={task.link || ''}
                             onChange={(e) => handleLinkChange(task.id, e.target.value)}
-                            style={{ flex: 1, border: 'none', padding: '0', fontSize: '0.7rem', color: task.link ? '#0052cc' : '#ccc', marginLeft: '4px' }}
+                            style={{ flex: 1, border: 'none', borderBottom: '1px solid #eee', padding: '2px', fontSize: '0.8rem', color: task.link ? '#0052cc' : '#ccc' }}
                           />
-                          
-                          {/* Link Button - Fixes 'getSafeLink' unused error */}
                           {task.link && (
                             <a 
                               href={getSafeLink(task.link)} 
                               target="_blank" 
                               rel="noreferrer"
-                              style={{ fontSize: '0.7rem', color: '#0052cc', textDecoration: 'none', cursor: 'pointer' }}
+                              style={{ fontSize: '0.8rem', color: '#0052cc', textDecoration: 'none', cursor: 'pointer', padding: '0 4px' }}
                               title="Open Link"
                             >
                               ↗
@@ -158,17 +168,17 @@ export const DebugList: React.FC = () => {
                   <button 
                     onClick={() => addTask(row.id, "New Task")} 
                     style={{ 
-                      height: '30px', 
+                      height: '36px', 
                       width: '100%', 
                       border: 'none',
                       borderTop: '1px solid #eee',
                       background: 'transparent', 
                       color: '#505f79',
                       cursor: 'pointer',
-                      fontSize: '0.75rem'
+                      fontSize: '0.8rem'
                     }}
                   >
-                    + Task
+                    + Add Task
                   </button>
                 </div>
               )}
