@@ -6,18 +6,33 @@ import { v4 as uuidv4 } from 'uuid';
 interface GanttState {
   doc: GanttDocV1;
   setTitle: (t: string) => void;
+  toggleTimeboxes: () => void;
+  
+  // Row CRUD
   addRow: (name: string) => void;
-  addTask: (rowId: string, name: string) => void;
-  updateTask: (taskId: string, updates: Partial<Task>) => void; // New Action
   deleteRow: (id: string) => void;
+  
+  // Task CRUD
+  addTask: (rowId: string, name: string) => void;
+  updateTask: (taskId: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+
+  // Timebox CRUD
+  addTimebox: (type: "sprint" | "pi", name: string, start: string, end: string) => void;
+  deleteTimebox: (id: string) => void;
+
   loadDoc: (doc: GanttDocV1) => void;
 }
 
 export const useStore = create<GanttState>((set) => ({
   doc: createDefaultDoc(),
-  setTitle: (title) => set((s) => ({ doc: { ...s.doc, title } })),
   
+  setTitle: (title) => set((s) => ({ doc: { ...s.doc, title } })),
+
+  toggleTimeboxes: () => set((s) => ({
+    doc: { ...s.doc, view: { ...s.doc.view, showTimeboxes: !s.doc.view.showTimeboxes } }
+  })),
+
   addRow: (name) => set((s) => ({
     doc: { 
       ...s.doc, 
@@ -25,6 +40,14 @@ export const useStore = create<GanttState>((set) => ({
     }
   })),
   
+  deleteRow: (id) => set((s) => ({
+    doc: {
+      ...s.doc,
+      rows: s.doc.rows.filter(r => r.id !== id),
+      tasks: s.doc.tasks.filter(t => t.rowId !== id)
+    }
+  })),
+
   addTask: (rowId, name) => set((s) => ({
     doc: {
       ...s.doc,
@@ -38,19 +61,10 @@ export const useStore = create<GanttState>((set) => ({
     }
   })),
 
-  // New Action Implementation
   updateTask: (taskId, updates) => set((s) => ({
     doc: {
       ...s.doc,
       tasks: s.doc.tasks.map(t => t.id === taskId ? { ...t, ...updates } : t)
-    }
-  })),
-  
-  deleteRow: (id) => set((s) => ({
-    doc: {
-      ...s.doc,
-      rows: s.doc.rows.filter(r => r.id !== id),
-      tasks: s.doc.tasks.filter(t => t.rowId !== id)
     }
   })),
   
@@ -60,6 +74,26 @@ export const useStore = create<GanttState>((set) => ({
       tasks: s.doc.tasks.filter(t => t.id !== id)
     }
   })),
+
+  addTimebox: (type, name, start, end) => set((s) => ({
+    doc: {
+      ...s.doc,
+      timeboxes: [...(s.doc.timeboxes || []), { id: uuidv4(), type, name, start, end }]
+    }
+  })),
+
+  deleteTimebox: (id) => set((s) => ({
+    doc: {
+      ...s.doc,
+      timeboxes: s.doc.timeboxes.filter(tb => tb.id !== id)
+    }
+  })),
   
-  loadDoc: (doc) => set({ doc })
+  loadDoc: (doc) => set({ 
+    doc: {
+      ...doc,
+      timeboxes: doc.timeboxes || [],
+      view: { ...doc.view, showTimeboxes: doc.view.showTimeboxes ?? false }
+    } 
+  })
 }));
