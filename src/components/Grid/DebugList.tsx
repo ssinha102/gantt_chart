@@ -124,6 +124,18 @@ export const DebugList: React.FC = () => {
                         onChange={(e) => handleLinkChange(task.id, e.target.value)}
                         style={{ flex: 1, border: 'none', padding: '0', fontSize: '0.7rem', color: task.link ? '#0052cc' : '#ccc', marginLeft: '4px' }}
                       />
+                      {/* Added back the clickable icon to use getSafeLink */}
+                      {task.link && (
+                        <a 
+                          href={getSafeLink(task.link)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          style={{ fontSize: '0.7rem', color: '#0052cc', textDecoration: 'none', cursor: 'pointer' }}
+                          title="Open Link"
+                        >
+                          ↗
+                        </a>
+                      )}
                   </div>
 
                 </div>
