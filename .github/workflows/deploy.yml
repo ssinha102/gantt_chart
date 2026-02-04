@@ -19,7 +19,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # Removed cache: 'npm' to fix the lockfile error
 
       - name: Install dependencies
         run: npm install
