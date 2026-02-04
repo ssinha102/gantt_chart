@@ -1,0 +1,61 @@
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.split-pane {
+  overflow: auto;
+}
+
+.split-pane.left {
+  width: 400px;
+  border-right: 1px solid #ccc;
+  background: #fdfdfd;
+}
+
+.split-pane.right {
+  flex: 1;
+  background: #fff;
+}
+
+.error-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #ff4d4f;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+button {
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+}
+
+button:hover {
+  background: #f0f0f0;
+}
