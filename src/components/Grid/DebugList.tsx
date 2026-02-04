@@ -35,7 +35,7 @@ export const DebugList: React.FC = () => {
 
           return (
             <div key={row.id} style={{ marginBottom: '4px', border: '1px solid #dfe1e6', borderRadius: '4px', background: '#fff' }}>
-              {/* Row Header (Main Task) */}
+              {/* Row Header */}
               <div style={{ 
                 height: '40px',
                 padding: '0 0.25rem', 
@@ -75,30 +75,31 @@ export const DebugList: React.FC = () => {
                 <button onClick={() => deleteRow(row.id)} style={{ color: '#de350b', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>Del</button>
               </div>
               
-              {/* Task List (Hidden if Collapsed) */}
+              {/* Task List */}
               {!isCollapsed && (
                 <div style={{ padding: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0' }}>
                   {tasks.map(task => (
                     <div key={task.id} style={{ 
-                      height: '50px', // COMPACT HEIGHT (Matches Timeline)
+                      height: '50px', 
                       boxSizing: 'border-box',
                       display: 'flex', 
-                      alignItems: 'center',
-                      gap: '8px',
+                      flexDirection: 'column', 
+                      justifyContent: 'center',
+                      gap: '2px',
                       padding: '0 6px', 
                       borderBottom: '1px solid #eee', 
                       position: 'relative',
                       background: '#fff'
                     }}>
-                      {/* Compact Single Line Row */}
-                      <input 
-                        value={task.name} 
-                        onChange={(e) => updateTask(task.id, { name: e.target.value })}
-                        style={{ flex: 1, fontWeight: '600', fontSize: '0.8rem', border: 'none', background: 'transparent' }}
-                        placeholder="Task Title"
-                      />
                       
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      {/* Row 1: Title & Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input 
+                          value={task.name} 
+                          onChange={(e) => updateTask(task.id, { name: e.target.value })}
+                          style={{ flex: 1, fontWeight: '600', fontSize: '0.8rem', border: 'none', background: 'transparent', padding: 0 }}
+                          placeholder="Task Title"
+                        />
                         <select 
                           value={task.status || 'todo'} 
                           onChange={(e) => handleStatusChange(task.id, e.target.value)}
@@ -111,6 +112,46 @@ export const DebugList: React.FC = () => {
                         </select>
                         <button onClick={() => deleteTask(task.id)} style={{ color: '#de350b', cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1rem', lineHeight: '1', padding: 0 }}>&times;</button>
                       </div>
+
+                      {/* Row 2: Dates & Link Input (Using the helper functions here) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                         <span style={{ fontSize: '0.7rem', color: '#999' }}>📅</span>
+                         <input 
+                           type="date" 
+                           value={task.start} 
+                           onChange={(e) => updateTask(task.id, { start: e.target.value })}
+                           style={{ border: 'none', padding: '0', fontSize: '0.7rem', color: '#666', width: '75px' }}
+                         />
+                         <span style={{ fontSize: '0.7rem', color: '#ccc' }}>→</span>
+                         <input 
+                           type="date" 
+                           value={task.end} 
+                           onChange={(e) => updateTask(task.id, { end: e.target.value })}
+                           style={{ border: 'none', padding: '0', fontSize: '0.7rem', color: '#666', width: '75px' }}
+                         />
+                         
+                         {/* Link Input - Fixes 'handleLinkChange' unused error */}
+                         <input 
+                            placeholder="Link..."
+                            value={task.link || ''}
+                            onChange={(e) => handleLinkChange(task.id, e.target.value)}
+                            style={{ flex: 1, border: 'none', padding: '0', fontSize: '0.7rem', color: task.link ? '#0052cc' : '#ccc', marginLeft: '4px' }}
+                          />
+                          
+                          {/* Link Button - Fixes 'getSafeLink' unused error */}
+                          {task.link && (
+                            <a 
+                              href={getSafeLink(task.link)} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              style={{ fontSize: '0.7rem', color: '#0052cc', textDecoration: 'none', cursor: 'pointer' }}
+                              title="Open Link"
+                            >
+                              ↗
+                            </a>
+                          )}
+                      </div>
+
                     </div>
                   ))}
                   
