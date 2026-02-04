@@ -12,6 +12,7 @@ export type Task = {
   end: string;   // Acts as Due Date
   owner?: string;
   status?: "todo" | "in-progress" | "done" | "blocked";
+  link?: string; // New Field
   progress?: number;
 };
 
