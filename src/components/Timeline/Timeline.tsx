@@ -7,13 +7,12 @@ const HEADER_HEIGHT = 40;
 const TIMEBOX_HEIGHT = 30; 
 const RESIZE_HANDLE_WIDTH = 10;
 
-// Layout Constants (Matched to the Left Grid's Card Size)
+// Layout Constants (Must roughly match DebugList.tsx styling)
 const GRID_ROW_HEADER_H = 60; 
-const GRID_TASK_H = 160;      // Increased height to fit rich bubbles
+const GRID_TASK_H = 160;      // Fixed track height to maintain alignment with Left Grid
 const GRID_ROW_FOOTER_H = 60; 
 
-// Bubble Visuals
-const BUBBLE_HEIGHT = 100;    // Taller bubble
+// Visual Styling
 const BUBBLE_RADIUS = 8;
 
 export const Timeline: React.FC = () => {
@@ -179,8 +178,13 @@ export const Timeline: React.FC = () => {
               const x = startOffset * CELL_WIDTH;
               const w = Math.max(duration * CELL_WIDTH, 10);
               
-              // Center the bubble vertically in the track
-              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - BUBBLE_HEIGHT) / 2); 
+              // --- DYNAMIC CONTENT SIZING ---
+              // Calculate visual height based on content
+              const hasOwner = !!task.owner;
+              const bubbleHeight = hasOwner ? 90 : 65; 
+
+              // Center the bubble vertically in the fixed track
+              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - bubbleHeight) / 2); 
 
               const isDragging = dragState?.id === task.id;
               const cursor = isDragging ? 'grabbing' : 'grab';
@@ -202,7 +206,7 @@ export const Timeline: React.FC = () => {
                   {/* 1. Main Bubble */}
                   <rect 
                     width={w} 
-                    height={BUBBLE_HEIGHT} 
+                    height={bubbleHeight} 
                     rx={BUBBLE_RADIUS} 
                     fill={barColor} 
                     opacity={isDragging ? 0.9 : 1} 
@@ -210,21 +214,21 @@ export const Timeline: React.FC = () => {
                   />
                   
                   {/* 2. Inner Content (Clipped) */}
-                  <svg x={0} y={0} width={w} height={BUBBLE_HEIGHT}>
+                  <svg x={0} y={0} width={w} height={bubbleHeight}>
                      {/* Title (Bold) */}
                      <text x={10} y={24} fontSize="13" fontWeight="bold" fill="white" style={{ userSelect: 'none' }}>
                        {task.name}
                      </text>
                      
-                     {/* Owner (Italic) */}
-                     {task.owner && (
+                     {/* Dynamic Stacking */}
+                     {hasOwner && (
                        <text x={10} y={44} fontSize="12" fontStyle="italic" fill="white" opacity={0.9} style={{ userSelect: 'none' }}>
                          {task.owner}
                        </text>
                      )}
 
-                     {/* Date Range (Normal) */}
-                     <text x={10} y={64} fontSize="11" fill="white" opacity={0.8} style={{ userSelect: 'none' }}>
+                     {/* Date Range (Normal) - Position moves up if no owner */}
+                     <text x={10} y={hasOwner ? 68 : 46} fontSize="11" fill="white" opacity={0.8} style={{ userSelect: 'none' }}>
                        {task.start.slice(5)} → {task.end.slice(5)}
                      </text>
 
@@ -238,8 +242,8 @@ export const Timeline: React.FC = () => {
                   </svg>
 
                   {/* 3. Resize Handles */}
-                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={BUBBLE_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} />
-                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={BUBBLE_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={bubbleHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={bubbleHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
                 </g>
               );
             })}
