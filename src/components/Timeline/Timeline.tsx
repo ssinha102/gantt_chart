@@ -7,10 +7,14 @@ const HEADER_HEIGHT = 40;
 const TIMEBOX_HEIGHT = 30; 
 const RESIZE_HANDLE_WIDTH = 10;
 
-// Grid layout constants (Must roughly match DebugList.tsx styling)
-const GRID_ROW_HEADER_H = 60; // Title + padding
-const GRID_TASK_H = 140;      // Height of one task card in the grid
-const GRID_ROW_FOOTER_H = 50; // Add Task button area
+// Layout Constants (Matched to the Left Grid's Card Size)
+const GRID_ROW_HEADER_H = 60; 
+const GRID_TASK_H = 160;      // Increased height to fit rich bubbles
+const GRID_ROW_FOOTER_H = 60; 
+
+// Bubble Visuals
+const BUBBLE_HEIGHT = 100;    // Taller bubble
+const BUBBLE_RADIUS = 8;
 
 export const Timeline: React.FC = () => {
   const { doc, updateTask, reorderTask } = useStore();
@@ -23,45 +27,38 @@ export const Timeline: React.FC = () => {
 
   const startDate = getTodayStr(); 
 
-  // 1. Pre-calculate layout (Y positions) for every row and task
+  // 1. Layout Calculation
   let currentY = 0;
   const rowLayouts = doc.rows.map(row => {
     const rowY = currentY;
     const rowTasks = doc.tasks.filter(t => t.rowId === row.id);
-    
-    // Header space
     currentY += GRID_ROW_HEADER_H;
     
-    // Task tracks
     const taskLayouts = rowTasks.map((task, index) => {
       const taskY = currentY;
       currentY += GRID_TASK_H;
       return { taskId: task.id, y: taskY, index };
     });
     
-    // Footer space
     currentY += GRID_ROW_FOOTER_H;
-    
     const height = currentY - rowY;
-    
-    // Add margin between rows
-    currentY += 24; 
+    currentY += 24; // Margin
 
     return { rowId: row.id, y: rowY, height, tasks: taskLayouts };
   });
 
-  // Dynamic Width Calculation
+  // 2. Width Calculation
   let maxDays = 90; 
   if (doc.tasks.length > 0) {
     const latestDate = doc.tasks.reduce((latest, task) => task.end > latest ? task.end : latest, startDate);
     const daysNeeded = diffDays(latestDate, startDate) + 30;
     maxDays = Math.max(maxDays, daysNeeded);
   }
-  
   const renderDays = maxDays;
   const width = renderDays * CELL_WIDTH;
   const height = Math.max(currentY + HEADER_HEIGHT + topOffset, 600); 
 
+  // 3. Interactions
   const handlePointerDown = (e: React.PointerEvent, task: any, widthPx: number) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
@@ -86,33 +83,24 @@ export const Timeline: React.FC = () => {
       const newEnd = addDays(dragInfo.current.originalEnd, deltaDays);
       if (diffDays(newEnd, dragInfo.current.originalStart) >= 0) updateTask(dragState.id, { end: newEnd });
     } else if (dragState.mode === 'move') {
-      // 1. Horizontal Date Move
       if (deltaDays !== 0) {
         const newStart = addDays(dragInfo.current.originalStart, deltaDays);
         const newEnd = addDays(dragInfo.current.originalEnd, deltaDays);
         updateTask(dragState.id, { start: newStart, end: newEnd });
       }
       
-      // 2. Vertical Row/Index Move (Reorder)
       const svgRect = svgRef.current.getBoundingClientRect();
       const relativeY = e.clientY - svgRect.top - HEADER_HEIGHT - topOffset;
-      
       const targetRow = rowLayouts.find(r => relativeY >= r.y && relativeY < (r.y + r.height));
       
       if (targetRow) {
-        // Calculate which index in this row we are hovering over
         const internalY = relativeY - targetRow.y - GRID_ROW_HEADER_H;
-        // Clamp index to valid range
         const rawIndex = Math.floor(internalY / GRID_TASK_H);
         const currentTasksInRow = doc.tasks.filter(t => t.rowId === targetRow.rowId);
-        
-        // Ensure index is within bounds (0 to length)
         let targetIndex = Math.max(0, rawIndex);
         if (targetIndex > currentTasksInRow.length) targetIndex = currentTasksInRow.length;
 
         const currentTask = doc.tasks.find(t => t.id === dragState.id);
-
-        // Check if we actually need to change anything to avoid jitter
         if (currentTask && (currentTask.rowId !== targetRow.rowId || getTaskIndex(currentTask) !== targetIndex)) {
              reorderTask(dragState.id, targetRow.rowId, targetIndex);
         }
@@ -120,7 +108,6 @@ export const Timeline: React.FC = () => {
     }
   };
 
-  // Helper to find current index of a task
   const getTaskIndex = (task: any) => {
       const tasksInRow = doc.tasks.filter(t => t.rowId === task.rowId);
       return tasksInRow.findIndex(t => t.id === task.id);
@@ -135,6 +122,7 @@ export const Timeline: React.FC = () => {
   return (
     <div id="timeline-container" style={{ overflow: 'auto', flex: 1, position: 'relative' }}>
       <svg ref={svgRef} width={width} height={height} style={{ display: 'block' }}>
+        {/* Timeboxes */}
         {showTimeboxes && doc.timeboxes && doc.timeboxes.map(tb => {
            const startOffset = diffDays(tb.start, startDate);
            const duration = diffDays(tb.end, tb.start) + 1;
@@ -149,6 +137,7 @@ export const Timeline: React.FC = () => {
              </g>
            )
         })}
+
         <g transform={`translate(0, ${topOffset})`}>
             {/* Grid Lines */}
             {Array.from({ length: renderDays }).map((_, i) => {
@@ -176,7 +165,7 @@ export const Timeline: React.FC = () => {
               />
             ))}
 
-            {/* Tasks */}
+            {/* Tasks Bubbles */}
             {doc.tasks.map(task => {
               const rLayout = rowLayouts.find(r => r.rowId === task.rowId);
               if (!rLayout) return null;
@@ -189,21 +178,68 @@ export const Timeline: React.FC = () => {
               
               const x = startOffset * CELL_WIDTH;
               const w = Math.max(duration * CELL_WIDTH, 10);
-              const y = HEADER_HEIGHT + tLayout.y + 40; 
+              
+              // Center the bubble vertically in the track
+              const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - BUBBLE_HEIGHT) / 2); 
 
               const isDragging = dragState?.id === task.id;
               const cursor = isDragging ? 'grabbing' : 'grab';
+              
               let barColor = isDragging ? "#0052cc" : "#3b82f6";
               if (task.status === 'done') barColor = "#36b37e"; 
               if (task.status === 'blocked') barColor = "#ff5630"; 
               if (task.status === 'in-progress') barColor = "#ffab00"; 
               
               return (
-                <g key={task.id} transform={`translate(${x}, ${y})`} style={{ cursor }} onPointerDown={(e) => handlePointerDown(e, task, w)} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
-                  <rect width={w} height={32} rx={4} fill={barColor} opacity={isDragging ? 0.9 : 1} />
-                  <text x={4} y={20} fontSize="12" fill="white" pointerEvents="none" style={{ userSelect: 'none' }}>{task.name} {task.owner ? `(${task.owner})` : ''}</text>
-                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={32} fill="transparent" style={{ cursor: 'ew-resize' }} />
-                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={32} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                <g 
+                  key={task.id} 
+                  transform={`translate(${x}, ${y})`} 
+                  style={{ cursor }} 
+                  onPointerDown={(e) => handlePointerDown(e, task, w)} 
+                  onPointerMove={handlePointerMove} 
+                  onPointerUp={handlePointerUp}
+                >
+                  {/* 1. Main Bubble */}
+                  <rect 
+                    width={w} 
+                    height={BUBBLE_HEIGHT} 
+                    rx={BUBBLE_RADIUS} 
+                    fill={barColor} 
+                    opacity={isDragging ? 0.9 : 1} 
+                    filter="drop-shadow(0px 2px 2px rgba(0,0,0,0.1))"
+                  />
+                  
+                  {/* 2. Inner Content (Clipped) */}
+                  <svg x={0} y={0} width={w} height={BUBBLE_HEIGHT}>
+                     {/* Title (Bold) */}
+                     <text x={10} y={24} fontSize="13" fontWeight="bold" fill="white" style={{ userSelect: 'none' }}>
+                       {task.name}
+                     </text>
+                     
+                     {/* Owner (Italic) */}
+                     {task.owner && (
+                       <text x={10} y={44} fontSize="12" fontStyle="italic" fill="white" opacity={0.9} style={{ userSelect: 'none' }}>
+                         {task.owner}
+                       </text>
+                     )}
+
+                     {/* Date Range (Normal) */}
+                     <text x={10} y={64} fontSize="11" fill="white" opacity={0.8} style={{ userSelect: 'none' }}>
+                       {task.start.slice(5)} → {task.end.slice(5)}
+                     </text>
+
+                     {/* Link Indicator Icon */}
+                     {task.link && (
+                       <g transform={`translate(${w - 24}, 8)`} opacity={0.8}>
+                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                       </g>
+                     )}
+                  </svg>
+
+                  {/* 3. Resize Handles */}
+                  <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={BUBBLE_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} />
+                  <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={BUBBLE_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} />
                 </g>
               );
             })}
