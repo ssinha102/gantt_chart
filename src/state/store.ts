@@ -7,6 +7,7 @@ interface GanttState {
   doc: GanttDocV1;
   setTitle: (t: string) => void;
   toggleTimeboxes: () => void;
+  toggleRowCollapse: (rowId: string) => void; // New Action
   
   // Row CRUD
   addRow: (name: string) => void;
@@ -35,6 +36,15 @@ export const useStore = create<GanttState>((set) => ({
     doc: { ...s.doc, view: { ...s.doc.view, showTimeboxes: !s.doc.view.showTimeboxes } }
   })),
 
+  toggleRowCollapse: (rowId) => set((s) => {
+    const current = s.doc.view.collapsedRowIds || [];
+    const isCollapsed = current.includes(rowId);
+    const newCollapsed = isCollapsed 
+      ? current.filter(id => id !== rowId)
+      : [...current, rowId];
+    return { doc: { ...s.doc, view: { ...s.doc.view, collapsedRowIds: newCollapsed } } };
+  }),
+
   addRow: (name) => set((s) => ({
     doc: { 
       ...s.doc, 
@@ -58,7 +68,6 @@ export const useStore = create<GanttState>((set) => ({
   })),
 
   addTask: (rowId, name) => set((s) => {
-    // Default to 2 days (Today -> Tomorrow)
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -71,7 +80,7 @@ export const useStore = create<GanttState>((set) => ({
           rowId, 
           name, 
           start: today.toISOString().split('T')[0], 
-          end: tomorrow.toISOString().split('T')[0] // spans 2 days inclusive
+          end: tomorrow.toISOString().split('T')[0]
         }]
       }
     };
@@ -129,7 +138,11 @@ export const useStore = create<GanttState>((set) => ({
     doc: {
       ...doc,
       timeboxes: doc.timeboxes || [],
-      view: { ...doc.view, showTimeboxes: doc.view.showTimeboxes ?? false }
+      view: { 
+        ...doc.view, 
+        showTimeboxes: doc.view.showTimeboxes ?? false,
+        collapsedRowIds: doc.view.collapsedRowIds || []
+      } 
     } 
   })
 }));
