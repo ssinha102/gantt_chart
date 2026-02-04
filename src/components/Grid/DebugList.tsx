@@ -20,25 +20,26 @@ export const DebugList: React.FC = () => {
   };
 
   return (
-    <div id="grid-container" style={{ padding: '1rem', height: '100%', overflowY: 'auto', background: '#fafbfc' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h3 style={{ margin: 0 }}>Work Breakdown</h3>
-        <button onClick={() => addRow("New Row")} style={{ padding: '4px 8px', cursor: 'pointer' }}>+ Add Row</button>
+    <div id="grid-container" style={{ padding: '0.5rem', height: '100%', overflowY: 'auto', background: '#fafbfc' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', padding: '0 0.5rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1rem' }}>Work Breakdown</h3>
+        <button onClick={() => addRow("New Row")} style={{ padding: '2px 8px', cursor: 'pointer', fontSize: '0.8rem' }}>+ Row</button>
       </div>
       
       <div>
         {doc.rows.map(row => (
-          <div key={row.id} style={{ marginBottom: '1.5rem', border: '1px solid #dfe1e6', borderRadius: '6px', background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            {/* Row Header */}
+          <div key={row.id} style={{ marginBottom: '10px', border: '1px solid #dfe1e6', borderRadius: '4px', background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            {/* Row Header (Compact: 40px) */}
             <div style={{ 
-              padding: '0.75rem', 
+              height: '40px',
+              padding: '0 0.5rem', 
               borderBottom: '1px solid #dfe1e6', 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
               background: '#f4f5f7',
-              borderTopLeftRadius: '6px',
-              borderTopRightRadius: '6px'
+              borderTopLeftRadius: '4px',
+              borderTopRightRadius: '4px'
             }}>
               <input 
                 value={row.name}
@@ -48,137 +49,84 @@ export const DebugList: React.FC = () => {
                   color: '#172b4d', 
                   border: '1px solid transparent', 
                   background: 'transparent',
-                  fontSize: '1rem',
+                  fontSize: '0.9rem',
                   width: '100%'
                 }}
               />
-              <button onClick={() => deleteRow(row.id)} style={{ color: '#de350b', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Delete Row</button>
+              <button onClick={() => deleteRow(row.id)} style={{ color: '#de350b', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>Delete</button>
             </div>
             
             {/* Task List */}
-            <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0' }}>
               {doc.tasks.filter(t => t.rowId === row.id).map(task => (
                 <div key={task.id} style={{ 
+                  height: '110px', // Matches Timeline Track exactly
+                  boxSizing: 'border-box',
                   display: 'flex', 
                   flexDirection: 'column', 
-                  gap: '10px', // Vertical spacing between stack items
-                  padding: '12px', 
-                  border: '1px solid #eee', 
-                  borderRadius: '6px',
-                  background: '#fff',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                  position: 'relative' // For absolute positioning delete button if needed, but flex is safer
+                  gap: '4px',
+                  padding: '6px', 
+                  borderBottom: '1px solid #eee', 
+                  position: 'relative'
                 }}>
                   
-                  {/* 1. Subtask Name (Bold) & Delete & Status */}
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                    <textarea 
+                  {/* Row 1: Title (Bold) & Delete */}
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-start' }}>
+                    <input 
                       value={task.name} 
                       onChange={(e) => updateTask(task.id, { name: e.target.value })}
-                      style={{ 
-                        flex: 1, 
-                        fontWeight: '800', // Extra bold
-                        fontSize: '1rem',
-                        border: '1px solid transparent', 
-                        padding: '4px', 
-                        resize: 'vertical',
-                        minHeight: '28px',
-                        fontFamily: 'inherit',
-                        background: 'transparent'
-                      }}
+                      style={{ flex: 1, fontWeight: '800', fontSize: '0.9rem', border: 'none', padding: '0', background: 'transparent' }}
                       placeholder="Task Title"
-                      rows={1}
                     />
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                       <button onClick={() => deleteTask(task.id)} style={{ color: '#de350b', cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1.2rem', lineHeight: '1', padding: '0 4px' }}>&times;</button>
-                       {/* Status kept small in corner to maintain functionality */}
-                       <select 
-                          value={task.status || 'todo'} 
-                          onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                          style={{ fontSize: '0.7rem', padding: '2px', border: '1px solid #eee', borderRadius: '3px' }}
-                        >
-                          <option value="todo">To Do</option>
-                          <option value="in-progress">Doing</option>
-                          <option value="blocked">Block</option>
-                          <option value="done">Done</option>
-                        </select>
-                    </div>
+                     <button onClick={() => deleteTask(task.id)} style={{ color: '#de350b', cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1rem', lineHeight: '1' }}>&times;</button>
                   </div>
 
-                  {/* 2. Owner (Italic) */}
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {/* Row 2: Owner & Status */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <input 
-                      placeholder="No Owner Assigned" 
+                      placeholder="No Owner" 
                       value={task.owner || ''} 
                       onChange={(e) => updateTask(task.id, { owner: e.target.value })}
-                      style={{ 
-                        width: '100%',
-                        border: '1px solid transparent', 
-                        borderBottom: '1px dashed #eee',
-                        padding: '4px', 
-                        fontSize: '0.9rem',
-                        fontStyle: 'italic',
-                        color: '#444'
-                      }}
+                      style={{ flex: 1, border: 'none', borderBottom: '1px dashed #eee', padding: '0', fontSize: '0.8rem', fontStyle: 'italic', color: '#444' }}
                     />
+                    <select 
+                      value={task.status || 'todo'} 
+                      onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                      style={{ fontSize: '0.7rem', padding: '0', border: 'none', color: '#666' }}
+                    >
+                      <option value="todo">To Do</option>
+                      <option value="in-progress">Doing</option>
+                      <option value="blocked">Block</option>
+                      <option value="done">Done</option>
+                    </select>
                   </div>
 
-                  {/* 3. Dates (Normal) - Stacked Vertically */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                     {/* Start Date (Required for Gantt logic) */}
-                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#666', width: '40px' }}>Start:</span>
-                        <input 
-                          type="date" 
-                          value={task.start} 
-                          onChange={(e) => updateTask(task.id, { start: e.target.value })}
-                          style={{ border: '1px solid #dfe1e6', borderRadius: '3px', padding: '2px 4px', fontSize: '0.9rem' }}
-                        />
-                     </div>
-                     {/* Due Date (The one requested) */}
-                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#666', width: '40px', fontWeight: 'bold' }}>Due:</span>
-                        <input 
-                          type="date" 
-                          value={task.end} 
-                          onChange={(e) => updateTask(task.id, { end: e.target.value })}
-                          style={{ border: '1px solid #dfe1e6', borderRadius: '3px', padding: '2px 4px', fontSize: '0.9rem' }}
-                        />
-                     </div>
+                  {/* Row 3: Dates (Side-by-Side for Compactness) */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                     <input 
+                       type="date" 
+                       value={task.start} 
+                       onChange={(e) => updateTask(task.id, { start: e.target.value })}
+                       style={{ flex: 1, border: '1px solid #dfe1e6', borderRadius: '3px', padding: '1px', fontSize: '0.8rem' }}
+                     />
+                     <span style={{ fontSize: '0.7rem', color: '#999' }}>→</span>
+                     <input 
+                       type="date" 
+                       value={task.end} 
+                       onChange={(e) => updateTask(task.id, { end: e.target.value })}
+                       style={{ flex: 1, border: '1px solid #dfe1e6', borderRadius: '3px', padding: '1px', fontSize: '0.8rem' }}
+                     />
                   </div>
 
-                  {/* 4. Link to Task (Blue Link) */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {/* Row 4: Link */}
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                       <input 
-                        placeholder="Paste Link (http://...)"
+                        placeholder="Link..."
                         value={task.link || ''}
                         onChange={(e) => handleLinkChange(task.id, e.target.value)}
-                        style={{ 
-                          flex: 1,
-                          border: '1px solid #dfe1e6', 
-                          borderRadius: '3px', 
-                          padding: '4px', 
-                          fontSize: '0.85rem',
-                          color: '#0052cc'
-                        }}
+                        style={{ flex: 1, border: 'none', padding: '0', fontSize: '0.8rem', color: task.link ? '#0052cc' : 'inherit' }}
                       />
-                      {task.link && (
-                        <a 
-                          href={getSafeLink(task.link)} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          style={{ 
-                            fontSize: '0.85rem', 
-                            color: '#0052cc', 
-                            textDecoration: 'underline', 
-                            whiteSpace: 'nowrap' 
-                          }}
-                        >
-                          Open Link &rarr;
-                        </a>
-                      )}
-                    </div>
+                      {task.link && <a href={getSafeLink(task.link)} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#0052cc', textDecoration: 'none' }}>↗</a>}
                   </div>
 
                 </div>
@@ -187,15 +135,14 @@ export const DebugList: React.FC = () => {
               <button 
                 onClick={() => addTask(row.id, "New Task")} 
                 style={{ 
+                  height: '40px', // Matches Footer
                   width: '100%', 
-                  padding: '10px', 
-                  marginTop: '4px', 
-                  border: '2px dashed #dfe1e6', 
-                  background: '#f9f9fa', 
+                  border: 'none',
+                  borderTop: '1px solid #eee',
+                  background: 'transparent', 
                   color: '#505f79',
                   cursor: 'pointer',
-                  borderRadius: '6px',
-                  fontWeight: '600'
+                  fontSize: '0.8rem'
                 }}
               >
                 + Add Task
