@@ -1,6 +1,7 @@
 import React from 'react';
 import { Toolbar } from '../components/Toolbar/Toolbar';
 import { DebugList } from '../components/Grid/DebugList';
+import { Timeline } from '../components/Timeline/Timeline';
 
 const App: React.FC = () => {
   return (
@@ -9,16 +10,17 @@ const App: React.FC = () => {
       
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* Left Pane: Grid */}
-        <div style={{ width: '400px', borderRight: '1px solid #dfe1e6', background: '#fff' }}>
+        <div style={{ width: '400px', borderRight: '1px solid #dfe1e6', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+          {/* We add a spacer to align the grid rows with the timeline rows */}
+          <div style={{ height: '40px', borderBottom: '1px solid #eee', background: '#fafafa' }}>
+            {/* Header Spacer */}
+          </div>
           <DebugList />
         </div>
         
-        {/* Right Pane: Timeline Placeholder */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f4f5f7', color: '#6b778c' }}>
-          <div style={{ textAlign: 'center' }}>
-            <h2>Timeline Visualization</h2>
-            <p>Phase 2: SVG Rendering coming next</p>
-          </div>
+        {/* Right Pane: Timeline SVG */}
+        <div style={{ flex: 1, display: 'flex', background: '#fff', overflow: 'hidden' }}>
+          <Timeline />
         </div>
       </div>
     </div>
