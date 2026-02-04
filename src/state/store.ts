@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GanttDocV1 } from '../model/types';
+import { GanttDocV1, Task } from '../model/types';
 import { createDefaultDoc } from '../model/defaults';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -8,6 +8,7 @@ interface GanttState {
   setTitle: (t: string) => void;
   addRow: (name: string) => void;
   addTask: (rowId: string, name: string) => void;
+  updateTask: (taskId: string, updates: Partial<Task>) => void; // New Action
   deleteRow: (id: string) => void;
   deleteTask: (id: string) => void;
   loadDoc: (doc: GanttDocV1) => void;
@@ -34,6 +35,14 @@ export const useStore = create<GanttState>((set) => ({
         start: new Date().toISOString().split('T')[0], 
         end: new Date().toISOString().split('T')[0] 
       }]
+    }
+  })),
+
+  // New Action Implementation
+  updateTask: (taskId, updates) => set((s) => ({
+    doc: {
+      ...s.doc,
+      tasks: s.doc.tasks.map(t => t.id === taskId ? { ...t, ...updates } : t)
     }
   })),
   
