@@ -3,6 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const createDefaultDoc = (): GanttDocV1 => {
   const row1 = uuidv4();
+  
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   return {
     version: 1,
     title: "New Project",
@@ -11,8 +16,8 @@ export const createDefaultDoc = (): GanttDocV1 => {
       id: uuidv4(), 
       rowId: row1, 
       name: "Task A", 
-      start: new Date().toISOString().split('T')[0], 
-      end: new Date().toISOString().split('T')[0],
+      start: today.toISOString().split('T')[0], 
+      end: tomorrow.toISOString().split('T')[0], // Default 2 days
       owner: "Team",
       status: "todo",
       link: "" 
