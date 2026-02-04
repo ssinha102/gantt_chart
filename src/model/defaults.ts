@@ -12,12 +12,15 @@ export const createDefaultDoc = (): GanttDocV1 => {
       rowId: row1, 
       name: "Task A", 
       start: new Date().toISOString().split('T')[0], 
-      end: new Date().toISOString().split('T')[0] 
+      end: new Date().toISOString().split('T')[0],
+      owner: "Team",
+      status: "todo",
+      link: "" 
     }],
-    timeboxes: [], // New required field
+    timeboxes: [], 
     view: { 
       zoom: "day",
-      showTimeboxes: false // Default to hidden as requested
+      showTimeboxes: false 
     }
   };
 };
