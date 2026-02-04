@@ -16,7 +16,7 @@ interface GanttState {
   // Task CRUD
   addTask: (rowId: string, name: string) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
-  reorderTask: (taskId: string, newRowId: string, newIndex: number) => void; // New Action
+  reorderTask: (taskId: string, newRowId: string, newIndex: number) => void; 
   deleteTask: (id: string) => void;
 
   // Timebox CRUD
@@ -57,18 +57,25 @@ export const useStore = create<GanttState>((set) => ({
     }
   })),
 
-  addTask: (rowId, name) => set((s) => ({
-    doc: {
-      ...s.doc,
-      tasks: [...s.doc.tasks, { 
-        id: uuidv4(), 
-        rowId, 
-        name, 
-        start: new Date().toISOString().split('T')[0], 
-        end: new Date().toISOString().split('T')[0] 
-      }]
-    }
-  })),
+  addTask: (rowId, name) => set((s) => {
+    // Default to 2 days (Today -> Tomorrow)
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return {
+      doc: {
+        ...s.doc,
+        tasks: [...s.doc.tasks, { 
+          id: uuidv4(), 
+          rowId, 
+          name, 
+          start: today.toISOString().split('T')[0], 
+          end: tomorrow.toISOString().split('T')[0] // spans 2 days inclusive
+        }]
+      }
+    };
+  }),
 
   updateTask: (taskId, updates) => set((s) => ({
     doc: {
@@ -77,30 +84,21 @@ export const useStore = create<GanttState>((set) => ({
     }
   })),
 
-  // New Logic: Reordering
   reorderTask: (taskId, newRowId, newIndex) => set((s) => {
     const taskToMove = s.doc.tasks.find(t => t.id === taskId);
     if (!taskToMove) return s;
 
-    // 1. Remove task from array
     const others = s.doc.tasks.filter(t => t.id !== taskId);
-
-    // 2. Separate tasks: specific row vs others
     const targetRowTasks = others.filter(t => t.rowId === newRowId);
     const otherRowTasks = others.filter(t => t.rowId !== newRowId);
 
-    // 3. Update the task with new Row ID
     const updatedTask = { ...taskToMove, rowId: newRowId };
-
-    // 4. Insert at correct index
-    // Clamp index to ensure it's valid
     const safeIndex = Math.max(0, Math.min(newIndex, targetRowTasks.length));
     targetRowTasks.splice(safeIndex, 0, updatedTask);
 
     return {
       doc: {
         ...s.doc,
-        // Reassemble: Others + Target Row (Visual order within row is preserved)
         tasks: [...otherRowTasks, ...targetRowTasks]
       }
     };
