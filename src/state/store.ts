@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GanttDocV1, Task } from '../model/types';
+import { GanttDocV1, Task, Row } from '../model/types';
 import { createDefaultDoc } from '../model/defaults';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,6 +10,7 @@ interface GanttState {
   
   // Row CRUD
   addRow: (name: string) => void;
+  updateRow: (id: string, updates: Partial<Row>) => void; // New Action
   deleteRow: (id: string) => void;
   
   // Task CRUD
@@ -37,6 +38,13 @@ export const useStore = create<GanttState>((set) => ({
     doc: { 
       ...s.doc, 
       rows: [...s.doc.rows, { id: uuidv4(), name, order: s.doc.rows.length }] 
+    }
+  })),
+
+  updateRow: (id, updates) => set((s) => ({
+    doc: {
+      ...s.doc,
+      rows: s.doc.rows.map(r => r.id === id ? { ...r, ...updates } : r)
     }
   })),
   
