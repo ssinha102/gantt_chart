@@ -1,32 +1,23 @@
 import React from 'react';
 import { Toolbar } from '../components/Toolbar/Toolbar';
 import { DebugList } from '../components/Grid/DebugList';
-import { useStore } from '../state/store';
-import './App.css';
 
 const App: React.FC = () => {
-  const { status, errorMessage, clearError } = useStore();
-
   return (
-    <div className="app-container">
-      {status === "error" && (
-        <div className="error-toast">
-          <span>{errorMessage}</span>
-          <button onClick={clearError}>Dismiss</button>
-        </div>
-      )}
-      
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#fff' }}>
       <Toolbar />
       
-      <div className="main-content">
-        <div className="split-pane left">
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* Left Pane: Grid */}
+        <div style={{ width: '400px', borderRight: '1px solid #dfe1e6', background: '#fff' }}>
           <DebugList />
         </div>
-        <div className="split-pane right">
-          <div style={{ padding: '2rem', color: '#888', textAlign: 'center' }}>
-            Timeline Visualization (Phase 2)
-            <br/>
-            Current Zoom: {useStore(s => s.doc.view.zoom)}
+        
+        {/* Right Pane: Timeline Placeholder */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f4f5f7', color: '#6b778c' }}>
+          <div style={{ textAlign: 'center' }}>
+            <h2>Timeline Visualization</h2>
+            <p>Phase 2: SVG Rendering coming next</p>
           </div>
         </div>
       </div>
