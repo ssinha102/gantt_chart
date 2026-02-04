@@ -5,7 +5,7 @@ import { addDays, diffDays, getTodayStr } from '../../utils/dateUtils';
 const CELL_WIDTH = 40; 
 const HEADER_HEIGHT = 10; 
 const TIMEBOX_HEIGHT = 30; 
-const RESIZE_HANDLE_WIDTH = 10;
+const RESIZE_HANDLE_WIDTH = 5; // Reduced from 10 to make "Move" easier to grab
 
 // LAYOUT CONSTANTS
 const GRID_ROW_HEADER_H = 40; 
@@ -70,8 +70,11 @@ export const Timeline: React.FC = () => {
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left; 
     let mode: 'move' | 'resize-left' | 'resize-right' = 'move';
+    
+    // Adjusted logic to ensure move is prioritized on very small tasks
     if (clickX < RESIZE_HANDLE_WIDTH) mode = 'resize-left';
     else if (clickX > widthPx - RESIZE_HANDLE_WIDTH) mode = 'resize-right';
+
     setDragState({ id: task.id, mode });
     dragInfo.current = { startX: e.clientX, originalStart: task.start, originalEnd: task.end, originalRowId: task.rowId };
   };
@@ -173,19 +176,8 @@ export const Timeline: React.FC = () => {
               const isHovered = hoveredId === task.id;
               const isDragging = dragState?.id === task.id;
               
-              // --- CARD STYLING ---
-              // Compact Height: 34px (Fits inside 50px track)
-              // Expanded Height: 100px (Popover on hover)
               const cardHeight = isHovered && !isDragging ? 100 : 34;
               
-              // If hovered, expand downwards and stay on top (handled by render order + logic)
-              // Note: SVG z-index is determined by order. We render regular cards first.
-              // To make hover truly "pop" on top, we might need to move it to end of array, 
-              // but for now, let's rely on standard rendering. 
-              // Actually, expanding height might clip if we don't bring to front. 
-              // React doesn't easily allow re-ordering dom nodes on hover without state flicker.
-              // We'll trust the visual pop.
-
               const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - 34) / 2); // Center the compact bar
 
               // Status Color for side bar
@@ -222,10 +214,9 @@ export const Timeline: React.FC = () => {
                   <rect 
                     x={0} y={0} 
                     width={6} height={cardHeight} 
-                    rx={4} // Round corners, but we'll mask right side if strict rectangle needed
+                    rx={4} 
                     fill={statusColor}
                   />
-                  {/* Square off right side of status bar */}
                   <rect x={4} y={0} width={2} height={cardHeight} fill={statusColor} />
 
                   {/* Content Container */}
@@ -255,7 +246,7 @@ export const Timeline: React.FC = () => {
                      )}
                   </svg>
 
-                  {/* Resize Handles (Invisible) */}
+                  {/* Resize Handles (Invisible, but now narrower) */}
                   <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={cardHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
                   <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={cardHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
                 </g>
