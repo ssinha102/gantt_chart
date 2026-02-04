@@ -9,7 +9,9 @@ export type Task = {
   rowId: string;
   name: string;
   start: string; // YYYY-MM-DD
-  end: string;
+  end: string;   // Acts as Due Date
+  owner?: string;
+  status?: "todo" | "in-progress" | "done" | "blocked";
   progress?: number;
 };
 
