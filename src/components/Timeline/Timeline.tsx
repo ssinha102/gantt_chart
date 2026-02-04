@@ -3,17 +3,17 @@ import { useStore } from '../../state/store';
 import { addDays, diffDays, getTodayStr } from '../../utils/dateUtils';
 
 const CELL_WIDTH = 40; 
-const HEADER_HEIGHT = 10; // Reduced significantly since dates are gone
+const HEADER_HEIGHT = 10; 
 const TIMEBOX_HEIGHT = 30; 
 const RESIZE_HANDLE_WIDTH = 10;
 
-// Layout Constants
-const GRID_ROW_HEADER_H = 60; 
-const GRID_TASK_H = 160;      
-const GRID_ROW_FOOTER_H = 60; 
+// COMPACT LAYOUT CONSTANTS
+const GRID_ROW_HEADER_H = 40; // Reduced from 60
+const GRID_TASK_H = 110;      // Reduced from 160 (Tight fit for 90px bubble)
+const GRID_ROW_FOOTER_H = 40; // Reduced from 60
 
 // Visual Styling
-const BUBBLE_RADIUS = 8; // Matches the rounded look in your image
+const BUBBLE_RADIUS = 6;
 
 export const Timeline: React.FC = () => {
   const { doc, updateTask, reorderTask } = useStore();
@@ -41,7 +41,7 @@ export const Timeline: React.FC = () => {
     
     currentY += GRID_ROW_FOOTER_H;
     const height = currentY - rowY;
-    currentY += 24; // Margin
+    currentY += 10; // Minimal Margin between rows
 
     return { rowId: row.id, y: rowY, height, tasks: taskLayouts };
   });
@@ -121,7 +121,7 @@ export const Timeline: React.FC = () => {
   return (
     <div id="timeline-container" style={{ overflow: 'auto', flex: 1, position: 'relative' }}>
       <svg ref={svgRef} width={width} height={height} style={{ display: 'block' }}>
-        {/* Timeboxes (Sprints/PIs) */}
+        {/* Timeboxes */}
         {showTimeboxes && doc.timeboxes && doc.timeboxes.map(tb => {
            const startOffset = diffDays(tb.start, startDate);
            const duration = diffDays(tb.end, tb.start) + 1;
@@ -138,11 +138,7 @@ export const Timeline: React.FC = () => {
         })}
 
         <g transform={`translate(0, ${topOffset})`}>
-            {/* REMOVED: Grid Lines & Date Headers Loop 
-               This gives the "clean, free-flowing" look requested.
-            */}
-            
-            {/* Rows Backgrounds (Transparent stroke for cleaner look) */}
+            {/* Rows Backgrounds */}
             {rowLayouts.map((layout, i) => (
               <rect 
                 key={layout.rowId} 
@@ -151,7 +147,6 @@ export const Timeline: React.FC = () => {
                 width={width} 
                 height={layout.height} 
                 fill={i % 2 === 0 ? "transparent" : "rgba(0,0,0,0.02)"} 
-                // Removed stroke to eliminate grid-like borders
               />
             ))}
 
@@ -169,12 +164,11 @@ export const Timeline: React.FC = () => {
               const x = startOffset * CELL_WIDTH;
               const w = Math.max(duration * CELL_WIDTH, 10);
               
-              // --- DYNAMIC CONTENT SIZING ---
-              // Calculate visual height based on content
+              // Dynamic Content Sizing
               const hasOwner = !!task.owner;
+              // Reduce max bubble height to fit in new 110px track
               const bubbleHeight = hasOwner ? 90 : 65; 
 
-              // Center the bubble vertically in the fixed track
               const y = HEADER_HEIGHT + tLayout.y + ((GRID_TASK_H - bubbleHeight) / 2); 
 
               const isDragging = dragState?.id === task.id;
@@ -194,7 +188,7 @@ export const Timeline: React.FC = () => {
                   onPointerMove={handlePointerMove} 
                   onPointerUp={handlePointerUp}
                 >
-                  {/* 1. Main Bubble */}
+                  {/* Bubble */}
                   <rect 
                     width={w} 
                     height={bubbleHeight} 
@@ -204,26 +198,19 @@ export const Timeline: React.FC = () => {
                     filter="drop-shadow(0px 2px 2px rgba(0,0,0,0.1))"
                   />
                   
-                  {/* 2. Inner Content (Clipped) */}
+                  {/* Content */}
                   <svg x={0} y={0} width={w} height={bubbleHeight}>
-                     {/* Title (Bold) */}
                      <text x={10} y={24} fontSize="13" fontWeight="bold" fill="white" style={{ userSelect: 'none' }}>
                        {task.name}
                      </text>
-                     
-                     {/* Dynamic Stacking */}
                      {hasOwner && (
                        <text x={10} y={44} fontSize="12" fontStyle="italic" fill="white" opacity={0.9} style={{ userSelect: 'none' }}>
                          {task.owner}
                        </text>
                      )}
-
-                     {/* Date Range (Normal) - Position moves up if no owner */}
                      <text x={10} y={hasOwner ? 68 : 46} fontSize="11" fill="white" opacity={0.8} style={{ userSelect: 'none' }}>
                        {task.start.slice(5)} → {task.end.slice(5)}
                      </text>
-
-                     {/* Link Indicator Icon */}
                      {task.link && (
                        <g transform={`translate(${w - 24}, 8)`} opacity={0.8}>
                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -232,7 +219,7 @@ export const Timeline: React.FC = () => {
                      )}
                   </svg>
 
-                  {/* 3. Resize Handles */}
+                  {/* Handles */}
                   <rect x={0} y={0} width={RESIZE_HANDLE_WIDTH} height={bubbleHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
                   <rect x={w - RESIZE_HANDLE_WIDTH} y={0} width={RESIZE_HANDLE_WIDTH} height={bubbleHeight} fill="transparent" style={{ cursor: 'ew-resize' }} />
                 </g>
